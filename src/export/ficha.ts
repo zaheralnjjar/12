@@ -1,6 +1,7 @@
 // A person's case file PDF. It contains text metadata only; attached documents are never embedded.
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
-import { DIA_LABEL, DOC_LABEL, ESTADO_LABEL, fecha, SECCION_LABEL, SEGUIMIENTO_LABEL, SEXO_LABEL } from '../lib/labels.ts'
+import { pdfText } from './pdfText.ts'
+import { conSheij, DIA_LABEL, DOC_LABEL, ESTADO_LABEL, fecha, SECCION_LABEL, SEGUIMIENTO_LABEL, SEXO_LABEL } from '../lib/labels.ts'
 import type { Campo, ConversoDetalle, ExtraValue } from '../types.ts'
 
 type Fila = { etiqueta: string; valor: string }
@@ -45,12 +46,12 @@ export function fichaTexto(detalle: ConversoDetalle, campos: Campo[]): FichaText
     nombre: c.nombre,
     id: c.id,
     estado: ESTADO_LABEL[c.estado] || c.estado,
-    sheij: c.maestroNombre || 'Sin sheij asignado',
+    sheij: conSheij(c.maestroNombre) || 'Sin sheij asignado',
     secciones,
     seguimiento: detalle.seguimiento.map((s) => [fecha(s.fecha), SEGUIMIENTO_LABEL[s.tipo] || s.tipo, s.resumen,
       s.proximaAccion ? `Próximo paso: ${s.proximaAccion}${s.proximaFecha ? ` (${fecha(s.proximaFecha)})` : ''}` : ''].filter(Boolean).join(' · ')),
     progreso: detalle.progreso.map((p) => `${p.nombre || p.etapaId}${p.fecha ? ` · ${fecha(p.fecha)}` : ''}`),
-    documentos: detalle.documentos.map((d) => d.fileName || DOC_LABEL[d.tipo] || d.tipo),
+    documentos: detalle.documentos.map((d) => `${DOC_LABEL[d.tipo] || d.tipo}${d.uploadedAt ? ` · ${fecha(d.uploadedAt)}` : ''}`),
     certificados: detalle.certificados.map((x) => `${x.numero} · ${fecha(x.fecha)} · ${x.estado === 'anulado' ? 'Anulado' : 'Válido'}${x.anuladoMotivo ? ` · Motivo: ${x.anuladoMotivo}` : ''}`),
   }
 }
@@ -63,6 +64,7 @@ const PAGE_H = 841.89
 const MARGIN = 52
 
 function wrapped(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  if (!text) return []
   const out: string[] = []
   let line = ''
   for (const word of text.split(/\s+/)) {
@@ -88,11 +90,13 @@ export async function fichaPdf(detalle: ConversoDetalle, campos: Campo[]): Promi
   const newPage = () => { page = pdf.addPage([PAGE_W, PAGE_H]); y = PAGE_H - MARGIN }
   const ensure = (height: number) => { if (y - height < MARGIN) newPage() }
   const paragraph = (value: string, font: PDFFont = regular, size = 10, indent = 0, color = INK) => {
-    const lines = wrapped(value, font, size, PAGE_W - MARGIN * 2 - indent)
+    const safeValue = pdfText(value, font)
+    const lines = safeValue.replace(/\r\n?/g, '\n').split('\n')
+      .flatMap((part) => part ? wrapped(part, font, size, PAGE_W - MARGIN * 2 - indent) : [''])
     for (const line of lines) {
       ensure(size + 4)
-      page.drawText(line, { x: MARGIN + indent, y, size, font, color })
       y -= size + 4
+      if (line) page.drawText(line, { x: MARGIN + indent, y, size, font, color })
     }
   }
   const heading = (value: string) => {
