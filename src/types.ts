@@ -87,6 +87,8 @@ export type Seguimiento = {
   createdAt: string
 }
 
+export type SeguimientoPendiente = { id: string; nombre: string; proximaFecha: string; proximaAccion: string; vencido: boolean }
+
 export type Documento = { id: string; tipo: string; fileName: string; mime: string; uploadedAt: string }
 
 export type Certificado = {
@@ -121,7 +123,7 @@ export type CertificadoDatos = {
   conversoId: string
 }
 
-export type CertificadoCompleto = Certificado & { datos: CertificadoDatos; firma: string | null; orgName: string }
+export type CertificadoCompleto = Certificado & { datos: CertificadoDatos; firma: string | null; orgName: string; verificationUrl?: string }
 
 export type ConversoDetalle = {
   converso: Converso

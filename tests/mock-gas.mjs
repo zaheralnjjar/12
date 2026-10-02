@@ -14,6 +14,8 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
   const spreadsheets = new Map()
   const files = new Map()
   const folders = new Map()
+  const forms = new Map()
+  const triggers = []
   const shared = [] // any sharing call is recorded so tests can assert there are none
 
   const makeSheet = (name) => {
@@ -39,10 +41,31 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
   }
   const makeSpreadsheet = (name) => {
     const id = 'ss_' + randomUUID()
+    const formUrl = 'https://docs.google.com/forms/d/form_' + randomUUID() + '/edit'
+    const formItems = []
+    const form = {
+      getItems: (type) => formItems.filter((item) => !type || item._type === type),
+      addListItem: (title, choices = []) => {
+        const item = {
+          _type: 'LIST', _choices: choices.slice(), getTitle: () => title,
+          asListItem: () => item,
+          setChoiceValues: (values) => { item._choices = values.slice(); return item },
+          getChoiceValues: () => item._choices.slice(),
+        }
+        formItems.push(item)
+        return item
+      },
+      _items: formItems,
+    }
+    forms.set(formUrl, form)
     const sheets = new Map()
     const ss = {
       getId: () => id,
       getName: () => name,
+      getFormUrl: () => ss._formUrl,
+      setFormUrl: (url) => { ss._formUrl = url },
+      _formUrl: formUrl,
+      _form: form,
       getSpreadsheetTimeZone: () => 'America/Argentina/Buenos_Aires',
       getSheetByName: (n) => sheets.get(n) ?? null,
       insertSheet: (n) => { const s = makeSheet(n); sheets.set(n, s); return s },
@@ -85,6 +108,10 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
   const ctx = {
     console,
     SpreadsheetApp: { create: makeSpreadsheet, openById: (id) => { const s = spreadsheets.get(id); if (!s) throw new Error('no spreadsheet'); return s } },
+    FormApp: {
+      ItemType: { LIST: 'LIST' },
+      openByUrl: (url) => { const form = forms.get(url); if (!form) throw new Error('no form'); return form },
+    },
     DriveApp: {
       createFolder: makeFolder,
       getFolderById: (id) => { const f = folders.get(id); if (!f) throw new Error('no folder'); return f },
@@ -133,17 +160,23 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
       },
     },
     MailApp: {
-      sendEmail: (...args) => { ctx.MailApp._sent.push(args) },
-      getRemainingDailyQuota: () => 100,
+      sendEmail: (...args) => { ctx.MailApp._sent.push(args); ctx.MailApp._remaining-- },
+      getRemainingDailyQuota: () => ctx.MailApp._remaining,
       _sent: [],
+      _remaining: 100,
     },
     ScriptApp: {
       newTrigger: () => ({
         timeBased: () => ({
-          everyDays: () => ({ atHour: () => ({ create: () => {} }) }),
+          everyDays: () => ({ atHour: () => ({ create: () => {
+            const trigger = { getHandlerFunction: () => trigger._handler, _handler: 'sendDailyReminders_', _active: true }
+            triggers.push(trigger)
+            return trigger
+          } }) }),
         }),
       }),
-      getProjectTriggers: () => [],
+      getProjectTriggers: () => triggers.slice(),
+      deleteTrigger: (trigger) => { const i = triggers.indexOf(trigger); if (i >= 0) triggers.splice(i, 1) },
     },
   }
   vm.createContext(ctx)
@@ -158,5 +191,5 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
     const out = ctx.doPost({ postData: { contents: JSON.stringify({ token, action, payload, ...extra }) } })
     return JSON.parse(out._text)
   }
-  return { ctx, call, props, files, folders, spreadsheets, shared }
+  return { ctx, call, props, files, folders, forms, spreadsheets, shared }
 }
