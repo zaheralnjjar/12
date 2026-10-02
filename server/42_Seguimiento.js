@@ -61,6 +61,27 @@ registerAction_('progreso.set', {
   },
 });
 
+/** Overdue and near-term next steps, restricted to records the caller may read. */
+registerAction_('seguimiento.pendientes', {
+  roles: STAFF,
+  fn: function (user) {
+    var today = todayIso_();
+    var limit = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    var latest = {};
+    rows_('Seguimiento').forEach(function (step) {
+      var current = latest[step.conversoId];
+      if (!current || step.fecha > current.fecha || (step.fecha === current.fecha && step.createdAt > current.createdAt)) latest[step.conversoId] = step;
+    });
+    return readableConversos_(user).filter(function (c) {
+      var step = latest[c.id];
+      return c.estado !== 'archivado' && step && step.proximaFecha && step.proximaFecha <= limit;
+    }).map(function (c) {
+      var step = latest[c.id];
+      return { id: c.id, nombre: fullName_(c), proximaFecha: step.proximaFecha, proximaAccion: step.proximaAccion, vencido: step.proximaFecha < today };
+    }).sort(function (a, b) { return a.proximaFecha < b.proximaFecha ? -1 : a.proximaFecha > b.proximaFecha ? 1 : 0; });
+  },
+});
+
 // ---------- identity documents (Drive, private) ----------
 
 function storeDocument_(conversoId, tipo, parsed, who) {
