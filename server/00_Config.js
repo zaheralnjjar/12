@@ -24,7 +24,7 @@ var SCHEMA = {
   Campos: ['id', 'etiqueta', 'etiquetaAr', 'tipo', 'opciones', 'ayuda', 'seccion', 'requerido', 'enEnlace', 'active', 'orden', 'createdAt', 'updatedAt'],
   Documentos: ['id', 'conversoId', 'tipo', 'fileId', 'fileName', 'mime', 'uploadedAt', 'uploadedBy', 'removedAt'],
   // `datos` freezes what was printed, so a certificate can be produced again exactly as issued
-  Certificados: ['id', 'numero', 'conversoId', 'maestroId', 'emisor', 'idioma', 'fecha', 'datos', 'estado', 'anuladoMotivo', 'emitidoPor', 'createdAt', 'updatedAt'],
+  Certificados: ['id', 'numero', 'conversoId', 'maestroId', 'emisor', 'idioma', 'fecha', 'datos', 'estado', 'anuladoMotivo', 'emitidoPor', 'createdAt', 'updatedAt', 'verificationHash'],
   // one-time links sent by WhatsApp so a person who embraced Islam remotely fills their own record
   Invitaciones: ['id', 'tokenHash', 'maestroId', 'creadoPor', 'telefono', 'nota', 'expira', 'usadoAt', 'conversoId', 'revocada', 'createdAt'],
   Contactos: ['id', 'nombre', 'tipo', 'organizacion', 'cargo', 'telefono', 'email', 'ciudad', 'notas', 'active', 'createdAt', 'updatedAt'],

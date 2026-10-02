@@ -123,7 +123,7 @@ export type CertificadoDatos = {
   conversoId: string
 }
 
-export type CertificadoCompleto = Certificado & { datos: CertificadoDatos; firma: string | null; orgName: string }
+export type CertificadoCompleto = Certificado & { datos: CertificadoDatos; firma: string | null; orgName: string; verificationUrl?: string }
 
 export type ConversoDetalle = {
   converso: Converso

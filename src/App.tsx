@@ -5,6 +5,7 @@ import { BottomNav, type Tab } from './components/BottomNav.tsx'
 import { signOutGoogle } from './lib/googleSignOut.ts'
 import { useLoad } from './lib/hooks.ts'
 import { invitationToken } from './lib/invitationLink.ts'
+import { verificationRequest } from './lib/verificationLink.ts'
 import { clearSteps, goBack, pushStep } from './lib/nav.ts'
 import { AjustesScreen } from './screens/AjustesScreen.tsx'
 import { ConversoScreen } from './screens/ConversoScreen.tsx'
@@ -16,6 +17,7 @@ import { PerfilScreen } from './screens/PerfilScreen.tsx'
 import { PendientesScreen } from './screens/PendientesScreen.tsx'
 import { RevisionScreen } from './screens/RevisionScreen.tsx'
 import { PublicRegistro } from './screens/PublicRegistro.tsx'
+import { PublicVerify } from './screens/PublicVerify.tsx'
 import { RegistroScreen } from './screens/RegistroScreen.tsx'
 import type { Catalogo, MaestroRef, Me } from './types.ts'
 
@@ -32,6 +34,8 @@ type View =
   | { name: 'pendientes' }
 
 export default function App() {
+  const verification = verificationRequest()
+  if (verification) return <PublicVerify token={verification.token} />
   const token = invitationToken()
   if (token) return <PublicRegistro token={token} />
   return <SignedIn />
