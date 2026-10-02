@@ -26,7 +26,8 @@ function cellToString_(v) {
     if (Utilities.formatDate(v, tz, 'HH:mm:ss') === '00:00:00') return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
     return v.toISOString();
   }
-  return String(v);
+  var t = String(v);
+  return /^'[=+\-@]/.test(t) ? t.slice(1) : t;
 }
 
 /** All rows of a table as objects (all values strings), each with its sheet row number in `_row`. */
@@ -48,9 +49,18 @@ function rows_(name) {
   return out;
 }
 
+/**
+ * Text that starts with = + - @ could be taken by Sheets as a formula (=IMPORTXML(...) would leak data)
+ * or as a number (+5491123456789 would lose its +). A leading apostrophe keeps it plain text;
+ * cellToString_ removes it again, so the app always reads back exactly what it wrote.
+ */
+function protectCell_(s) {
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
 function toRowArray_(name, obj) {
   return SCHEMA[name].map(function (c) {
-    return obj[c] === null || obj[c] === undefined ? '' : String(obj[c]);
+    return obj[c] === null || obj[c] === undefined ? '' : protectCell_(String(obj[c]));
   });
 }
 
