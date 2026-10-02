@@ -11,6 +11,13 @@ import type { Campo, Catalogo, CertificadoCompleto, Converso, ConversoDetalle, E
 
 /** pdf-lib is loaded only when a certificate is downloaded. */
 const downloadCertificado = async (c: CertificadoCompleto) => (await import('../export/certificado.ts')).downloadCertificado(c)
+const verificationUrl = (token: string) => {
+  const url = new URL(window.location.href)
+  url.search = ''
+  url.hash = ''
+  url.searchParams.set('verify', token)
+  return url.toString()
+}
 const downloadFicha = async (detalle: ConversoDetalle, campos: Campo[]) => (await import('../export/ficha.ts')).downloadFicha(detalle, campos)
 
 function valueText(c: Campo, conv: Converso): string {
@@ -323,9 +330,10 @@ function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; deta
   const [emisor, setEmisor] = useState<'maestro' | 'centro'>(detalle.converso.maestroId ? 'maestro' : 'centro')
   const [idioma, setIdioma] = useState<'es' | 'es_ar'>('es')
   const action = useAction()
-  const download = (certId: string) => action.run(async () => {
+  const download = (certId: string, token?: string) => action.run(async () => {
     const full = await api<CertificadoCompleto>('certificados.get', { id: certId })
-    await downloadCertificado(full)
+    const verifyToken = token || (await api<{ token: string }>('certificados.verifyToken', { id: certId })).token
+    await downloadCertificado({ ...full, verificationUrl: verificationUrl(verifyToken) })
   })
   return (
     <section className="card stack">
@@ -341,7 +349,7 @@ function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; deta
                 {x.anuladoMotivo && <span className="small">Motivo: {x.anuladoMotivo}</span>}
               </span>
               <span className="row">
-                <button className="small" onClick={() => download(x.id)}>Descargar PDF</button>
+                <button className="small" disabled={readOnly} onClick={() => download(x.id)}>Descargar PDF</button>
                 {!readOnly && x.estado === 'valido' && (
                   <button className="small danger" onClick={() => {
                     const motivo = window.prompt('Motivo de la anulación')
@@ -364,10 +372,10 @@ function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; deta
             <option value="es_ar">Español y árabe</option>
           </select>
           <button className="primary" disabled={action.busy} onClick={() => action.run(async () => {
-            const cert = await api<{ id: string }>('certificados.issue', { conversoId: id, emisor, idioma })
+            const cert = await api<{ id: string; verificationToken: string }>('certificados.issue', { conversoId: id, emisor, idioma })
             onChange()
             const full = await api<CertificadoCompleto>('certificados.get', { id: cert.id })
-            await downloadCertificado(full)
+            await downloadCertificado({ ...full, verificationUrl: verificationUrl(cert.verificationToken) })
           })}>Emitir certificado</button>
         </div>
       )}
