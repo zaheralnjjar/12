@@ -129,6 +129,24 @@ const statsAsMaestro = ok(call(MA, 'estadisticas', { diasSinSeguimiento: 14 }))
 assert.equal(statsAsMaestro.total, 1)
 assert.ok(statsAsMaestro.sinSeguimiento.every((row) => row.id === c1.id), 'maestro statistics never include records assigned to another maestro')
 assert.equal(statsAsMaestro.diasSinSeguimiento, 14)
+const outOfOrderDates = [
+  ['2026-08-04', 'Estadística agosto', '11 5555 1001', 'Brasil'],
+  ['2024-03-04', 'Estadística marzo', '11 5555 1002', 'Chile'],
+  ['2024-06-04', 'Estadística junio', '11 5555 1003', 'Paraguay'],
+  ['2025-12-04', 'Estadística diciembre', '11 5555 1004', 'Uruguay'],
+]
+outOfOrderDates.forEach(([fechaShahada, nombres, whatsapp, nacionalidad]) => {
+  ok(call(SUP, 'conversos.create', { data: base({ fechaShahada, nombres, whatsapp, nacionalidad, maestroId: mb.id }) }))
+})
+const statsSorted = ok(call(SUP, 'estadisticas', { diasSinSeguimiento: 30 }))
+const monthKeys = statsSorted.porMes.map((row) => row.key)
+const yearKeys = statsSorted.porAnio.map((row) => row.key)
+assert.deepEqual(monthKeys, [...monthKeys].sort(), 'monthly statistics are in ascending key order')
+assert.deepEqual(yearKeys, [...yearKeys].sort(), 'yearly statistics are in ascending key order')
+for (const key of ['porMaestro', 'porNacionalidad', 'porEstado']) {
+  const totals = statsSorted[key].map((row) => row.total)
+  assert.deepEqual(totals, [...totals].sort((a, b) => b - a), key + ' statistics are in descending count order')
+}
 denied(call(MA, 'conversos.get', { id: c2.id }), 'NOT_FOUND') // "not yours" looks like "not found"
 denied(call(MA, 'conversos.ficha', { id: c2.id }), 'NOT_FOUND')
 denied(call(MA, 'conversos.get', { id: 'NM-2026-9999' }), 'NOT_FOUND')
@@ -171,7 +189,19 @@ assert.equal(dupe.revisar, true)
 assert.match(ok(call(SUP, 'conversos.list', { revisar: true })).find((c) => c.id === dupe.id).motivosRevision, new RegExp('Posible duplicado de ' + c1.id))
 assert.equal(ok(call(SUP, 'conversos.list', { q: 'otra vez' })).find((c) => c.id === dupe.id).motivosRevision, undefined, 'review reasons are only included in the supervisor review queue')
 assert.match(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, new RegExp('Posible duplicado de ' + c1.id))
-ok(call(SUP, 'conversos.revisado', { id: dupe.id }))
+const conversosSheet = [...s.spreadsheets.values()][0].getSheetByName('Conversos')
+const conversosRows = conversosSheet.getDataRange().getValues()
+const revisarCol = conversosRows[0].indexOf('revisar')
+const dupeRow = conversosRows.findIndex((row) => row[0] === dupe.id)
+const dupeReason = conversosRows[dupeRow][revisarCol].split(' · ')[0]
+const unhandledReason = 'Fecha de nacimiento no reconocida: «ayer»'
+conversosSheet.getRange(dupeRow + 1, revisarCol + 1).setValues([[dupeReason + ' · ' + unhandledReason]])
+denied(call(MA, 'conversos.revisado', { id: dupe.id, motivos: [dupeReason] }), 'FORBIDDEN')
+denied(call(COL, 'conversos.revisado', { id: dupe.id, motivos: [dupeReason] }), 'FORBIDDEN')
+denied(call(SUP, 'conversos.revisado', { id: dupe.id, motivos: ['Fecha falsa'] }), 'BAD_INPUT')
+ok(call(SUP, 'conversos.revisado', { id: dupe.id, motivos: [dupeReason] }))
+assert.equal(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, unhandledReason, 'resolving one reason preserves every unhandled reason')
+ok(call(SUP, 'conversos.revisado', { id: dupe.id, motivos: [unhandledReason] }))
 assert.equal(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, '')
 
 // --- follow-up and progress
