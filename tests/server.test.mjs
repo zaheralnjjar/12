@@ -171,7 +171,19 @@ assert.equal(dupe.revisar, true)
 assert.match(ok(call(SUP, 'conversos.list', { revisar: true })).find((c) => c.id === dupe.id).motivosRevision, new RegExp('Posible duplicado de ' + c1.id))
 assert.equal(ok(call(SUP, 'conversos.list', { q: 'otra vez' })).find((c) => c.id === dupe.id).motivosRevision, undefined, 'review reasons are only included in the supervisor review queue')
 assert.match(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, new RegExp('Posible duplicado de ' + c1.id))
-ok(call(SUP, 'conversos.revisado', { id: dupe.id }))
+const conversosSheet = [...s.spreadsheets.values()][0].getSheetByName('Conversos')
+const conversosRows = conversosSheet.getDataRange().getValues()
+const revisarCol = conversosRows[0].indexOf('revisar')
+const dupeRow = conversosRows.findIndex((row) => row[0] === dupe.id)
+const dupeReason = conversosRows[dupeRow][revisarCol].split(' · ')[0]
+const unhandledReason = 'Fecha de nacimiento no reconocida: «ayer»'
+conversosSheet.getRange(dupeRow + 1, revisarCol + 1).setValues([[dupeReason + ' · ' + unhandledReason]])
+denied(call(MA, 'conversos.revisado', { id: dupe.id, motivos: [dupeReason] }), 'FORBIDDEN')
+denied(call(COL, 'conversos.revisado', { id: dupe.id, motivos: [dupeReason] }), 'FORBIDDEN')
+denied(call(SUP, 'conversos.revisado', { id: dupe.id, motivos: ['Fecha falsa'] }), 'BAD_INPUT')
+ok(call(SUP, 'conversos.revisado', { id: dupe.id, motivos: [dupeReason] }))
+assert.equal(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, unhandledReason, 'resolving one reason preserves every unhandled reason')
+ok(call(SUP, 'conversos.revisado', { id: dupe.id, motivos: [unhandledReason] }))
 assert.equal(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, '')
 
 // --- follow-up and progress
