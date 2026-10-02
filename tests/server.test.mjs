@@ -272,6 +272,10 @@ const row3 = invRows.find((r) => r[0] === inv3.id)
 row3[7] = new Date(Date.now() - 1000).toISOString() // expira
 denied(pub('public.form', { token: inv3.url.split('#r=')[1] }), 'INVALID_LINK')
 
+// records without a sheikh can be listed on their own (the link above had none)
+assert.ok(ok(call(SUP, 'conversos.list', { sinMaestro: true })).every((c) => !c.maestroId))
+assert.equal(ok(call(MA, 'conversos.list', { sinMaestro: true })).length, 0)
+
 // --- the supervisor configures the fields
 denied(call(SUP, 'camposBase.save', { key: 'nombres', requerido: false, active: false }), 'BAD_INPUT') // always required
 ok(call(SUP, 'camposBase.save', { key: 'sexo', requerido: false, enEnlace: true, active: true }))

@@ -111,6 +111,7 @@ registerAction_('conversos.list', {
     var maestroId = str_(payload.maestroId, 40);
     var nacionalidad = str_(payload.nacionalidad, 60);
     var soloRevisar = payload.revisar === true;
+    var sinMaestro = payload.sinMaestro === true;
     var names = maestroNames_();
     var last = followUpIndex_();
     return readableConversos_(user)
@@ -120,6 +121,7 @@ registerAction_('conversos.list', {
         if (maestroId && c.maestroId !== maestroId) return false;
         if (nacionalidad && c.nacionalidad !== nacionalidad) return false;
         if (soloRevisar && !c.revisar) return false;
+        if (sinMaestro && c.maestroId) return false;
         if (!q) return true;
         var hay = looseKey_([c.id, c.nombres, c.apellidos, c.nombreIslamico, c.ciudad, c.email].join(' '));
         if (hay.indexOf(q) >= 0) return true;
