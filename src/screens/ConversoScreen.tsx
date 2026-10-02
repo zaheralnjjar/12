@@ -9,7 +9,7 @@ import { DOC_LABEL, ESTADO_LABEL, conSheij, ORIGEN_LABEL, SECCIONES, SECCION_LAB
 import { openWhatsApp, whatsappTooLong } from '../lib/whatsapp.ts'
 import type { Campo, Catalogo, CertificadoCompleto, Converso, ConversoDetalle, ExtraValue, Role } from '../types.ts'
 import { T } from '../lib/i18n.tsx'
-import { useLocale } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 import { translatedText } from '../lib/locale.ts'
 
 /** pdf-lib is loaded only when a certificate is downloaded. */

@@ -20,7 +20,8 @@ import { PublicRegistro } from './screens/PublicRegistro.tsx'
 import { PublicVerify } from './screens/PublicVerify.tsx'
 import { RegistroScreen } from './screens/RegistroScreen.tsx'
 import type { Catalogo, MaestroRef, Me } from './types.ts'
-import { LanguageSwitcher, LocaleProvider, T, useLocale } from './lib/i18n.tsx'
+import { LanguageSwitcher, LocaleProvider, T } from './lib/i18n.tsx'
+import { useLocale } from './lib/locale-context.ts'
 
 type View =
   | { name: 'home' }

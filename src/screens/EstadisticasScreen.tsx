@@ -4,7 +4,7 @@ import { useLoad } from '../lib/hooks.ts'
 import { ESTADO_LABEL, fecha } from '../lib/labels.ts'
 import type { Estadisticas } from '../types.ts'
 import { T } from '../lib/i18n.tsx'
-import { useLocale } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 import { translatedText } from '../lib/locale.ts'
 
 function Barras({ title, items, latest = false, horizontal = true }: { title: string; items: Estadisticas['porMes']; latest?: boolean; horizontal?: boolean }) {

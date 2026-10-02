@@ -5,7 +5,8 @@ import { api } from '../../api.ts'
 import { SignaturePad } from '../../components/SignaturePad.tsx'
 import { useAction, useLoad } from '../../lib/hooks.ts'
 import type { Maestro, MaestroRef } from '../../types.ts'
-import { T, useLocale } from '../../lib/i18n.tsx'
+import { T } from '../../lib/i18n.tsx'
+import { useLocale } from '../../lib/locale-context.ts'
 
 type Edit = { id?: string; nombre: string; email: string; telefono: string; alias: string }
 

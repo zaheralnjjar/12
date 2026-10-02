@@ -3,7 +3,8 @@ import { api } from '../api.ts'
 import { useLoad } from '../lib/hooks.ts'
 import { ESTADO_LABEL, fecha } from '../lib/labels.ts'
 import type { Catalogo, ConversoResumen, Role } from '../types.ts'
-import { T, useLocale } from '../lib/i18n.tsx'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 export type Filtro = { estado?: string; maestroId?: string; nacionalidad?: string; revisar?: boolean; sinMaestro?: boolean }
 

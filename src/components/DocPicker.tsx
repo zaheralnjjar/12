@@ -4,7 +4,8 @@ import { errorMessage } from '../api.ts'
 import { DOC_LABEL } from '../lib/labels.ts'
 import { prepareDocument } from '../lib/imageResize.ts'
 import type { DocAdjunto } from '../types.ts'
-import { T, useLocale } from '../lib/i18n.tsx'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 export const MAX_DOCS = 4
 

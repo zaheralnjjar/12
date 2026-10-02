@@ -5,7 +5,7 @@ import { DIA_LABEL, PAISES, SECCIONES, SECCION_LABEL, SEXO_LABEL } from '../lib/
 
 import type { FormValues } from '../lib/formValues.ts'
 import { T } from '../lib/i18n.tsx'
-import { useLocale } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 export type Lists = { nacionalidades: string[]; maestros: MaestroRef[] }
 

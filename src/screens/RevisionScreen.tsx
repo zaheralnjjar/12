@@ -3,7 +3,8 @@ import { api } from '../api.ts'
 import { useAction, useLoad } from '../lib/hooks.ts'
 import { duplicateTarget, groupReviewRecords, reviewCorrectionFields, reviewReasons } from '../lib/revision.ts'
 import type { Catalogo, ConversoDetalle, ConversoResumen } from '../types.ts'
-import { T, useLocale } from '../lib/i18n.tsx'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 type ReviewApiRecord = ConversoResumen & { motivosRevision?: string }
 type ReviewRecord = Omit<ConversoResumen, 'revisar'> & { motivosRevision?: string; revisar: string }

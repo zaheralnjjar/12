@@ -6,7 +6,8 @@ import { useAction, useLoad } from '../lib/hooks.ts'
 import { PAISES, fecha } from '../lib/labels.ts'
 import { waShareLink } from '../lib/whatsapp.ts'
 import type { Catalogo, Invitacion, Role } from '../types.ts'
-import { T, useLocale } from '../lib/i18n.tsx'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 const ESTADO: Record<string, [string, string]> = {
   pendiente: ['Pendiente', 'badge warn'],

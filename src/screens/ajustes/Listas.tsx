@@ -3,7 +3,7 @@ import { api } from '../../api.ts'
 import { useAction } from '../../lib/hooks.ts'
 import type { Catalogo } from '../../types.ts'
 import { T } from '../../lib/i18n.tsx'
-import { useLocale } from '../../lib/i18n.tsx'
+import { useLocale } from '../../lib/locale-context.ts'
 
 export function Nacionalidades({ catalogo, onChanged }: { catalogo: Catalogo; onChanged: () => void }) {
   const { t } = useLocale()

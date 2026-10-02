@@ -1,6 +1,7 @@
 import { NavIcon, type NavIconName } from './NavIcon.tsx'
 import type { Role } from '../types.ts'
-import { T, useLocale } from '../lib/i18n.tsx'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 export type Tab = 'home' | 'conversos' | 'nuevo' | 'enlaces' | 'ajustes' | 'perfil' | 'pendientes'
 

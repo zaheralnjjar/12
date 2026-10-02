@@ -1,10 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { getLanguage, setLanguage, translatedText, translate, type Language } from './locale.ts'
-
-const LanguageContext = createContext<{ language: Language; changeLanguage: (language: Language) => void }>({
-  language: 'es',
-  changeLanguage: () => {},
-})
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { getLanguage, setLanguage, translatedText, type Language } from './locale.ts'
+import { LanguageContext, useLocale } from './locale-context.ts'
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [language, setCurrentLanguage] = useState<Language>(getLanguage)
@@ -22,15 +18,6 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 }
 
 // oxlint-disable-next-line react/only-export-components
-export function useLocale() {
-  const { language, changeLanguage } = useContext(LanguageContext)
-  return {
-    language,
-    changeLanguage,
-    t: (key: string) => translate(key, language),
-  }
-}
-
 function translateNode(node: ReactNode, language: Language): ReactNode {
   if (typeof node === 'string') return translatedText(node, language)
   if (Array.isArray(node)) return node.map((part, index) => <T key={index}>{part}</T>)

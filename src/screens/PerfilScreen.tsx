@@ -2,7 +2,8 @@ import { api } from '../api.ts'
 import { SignaturePad } from '../components/SignaturePad.tsx'
 import { useLoad } from '../lib/hooks.ts'
 import type { MaestroRef, Me } from '../types.ts'
-import { T, useLocale } from '../lib/i18n.tsx'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 export function PerfilScreen({ me, preview }: { me: Me; preview: MaestroRef | null }) {
   const { t } = useLocale()

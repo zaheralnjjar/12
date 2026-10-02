@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAction } from '../lib/hooks.ts'
 import { canvasToSignature, fileToSignature } from '../lib/signatureCanvas.ts'
 import { T } from '../lib/i18n.tsx'
-import { useLocale } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 const INK = '#16245f'
 

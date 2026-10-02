@@ -1,6 +1,7 @@
 import { api } from '../../api.ts'
 import { useLoad } from '../../lib/hooks.ts'
-import { T, useLocale } from '../../lib/i18n.tsx'
+import { T } from '../../lib/i18n.tsx'
+import { useLocale } from '../../lib/locale-context.ts'
 
 const ACCION: Record<string, string> = {
   ver_documento: 'Abrió un documento',

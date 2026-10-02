@@ -1,7 +1,8 @@
 // Sign-in screen. Production: Google Sign-In only. The e-mail box below exists
 // only in `npm run dev` builds against the local dev server (it is compiled out of production).
 import { useEffect, useRef, useState } from 'react'
-import { LanguageSwitcher, T, useLocale } from './lib/i18n.tsx'
+import { LanguageSwitcher, T } from './lib/i18n.tsx'
+import { useLocale } from './lib/locale-context.ts'
 import { localizeError } from './lib/locale.ts'
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
