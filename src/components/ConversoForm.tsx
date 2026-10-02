@@ -9,6 +9,8 @@ import { useLocale } from '../lib/locale-context.ts'
 
 export type Lists = { nacionalidades: string[]; maestros: MaestroRef[] }
 
+const NATIONALITIES_OFFERED = new Set(['Argentina', 'Paraguay', 'Brasil', 'Uruguay', 'Chile', 'Bolivia'])
+
 function Label({ campo }: { campo: CampoPublico }) {
   const { t } = useLocale()
   return (
@@ -82,7 +84,8 @@ function FieldInput({
         </label>
       )
     case 'nacionalidad': {
-      const opts = lists.nacionalidades.includes(text) || !text ? lists.nacionalidades : [text, ...lists.nacionalidades]
+      const offered = lists.nacionalidades.filter((name) => NATIONALITIES_OFFERED.has(name))
+      const opts = offered.includes(text) || !text ? offered : [text, ...offered]
       return (
         <label className="stack">
           <Label campo={campo} />
@@ -220,27 +223,29 @@ export function ConversoForm({
   const visible = campos.filter((c) => !hide.includes(c.key))
   const setData = (key: string, v: string) => onChange({ ...values, data: { ...values.data, [key]: v } })
   return (
-    <div className="stack">
+    <div className="stack converso-form">
       {SECCIONES.map((sec) => {
         const here = visible.filter((c) => (c.seccion || 'otros') === sec)
         if (!here.length) return null
         return (
-          <fieldset key={sec}>
-            <legend><T>{SECCION_LABEL[sec]}</T></legend>
+          <fieldset className="form-section" key={sec}>
+            <legend className="visually-hidden"><T>{SECCION_LABEL[sec]}</T></legend>
+            <h2 className="form-section-title" aria-hidden="true"><T>{SECCION_LABEL[sec]}</T></h2>
             {here.map((c) => (
-              <FieldInput
-                key={c.key}
-                campo={c}
-                value={c.custom ? values.extra[c.key] ?? '' : values.data[c.key] ?? ''}
-                onChange={(v) =>
-                  c.custom
-                    ? onChange({ ...values, extra: { ...values.extra, [c.key]: v } })
-                    : onChange({ ...values, data: { ...values.data, [c.key]: typeof v === 'string' ? v : v.join(',') } })
-                }
-                values={values}
-                setData={setData}
-                lists={lists}
-              />
+              <div className={`form-field${['textarea', 'phone', 'dias', 'multichoice'].includes(c.tipo) ? ' form-field-wide' : ''}`} key={c.key}>
+                <FieldInput
+                  campo={c}
+                  value={c.custom ? values.extra[c.key] ?? '' : values.data[c.key] ?? ''}
+                  onChange={(v) =>
+                    c.custom
+                      ? onChange({ ...values, extra: { ...values.extra, [c.key]: v } })
+                      : onChange({ ...values, data: { ...values.data, [c.key]: typeof v === 'string' ? v : v.join(',') } })
+                  }
+                  values={values}
+                  setData={setData}
+                  lists={lists}
+                />
+              </div>
             ))}
           </fieldset>
         )

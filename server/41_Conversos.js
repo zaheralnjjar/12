@@ -1,18 +1,26 @@
 // The record of each person who embraced Islam: list, open, register, edit, assign, archive, delete.
 // Every access to an existing record goes through conversoFor_ / readableConversos_ (20_Gate.js).
 
-/** Next serial for a prefix such as "NM-2026-": NM-2026-0001, NM-2026-0002, ... (called under the write lock). */
-function nextSerial_(table, column, prefix) {
-  var max = 0;
-  rows_(table).forEach(function (r) {
-    var v = String(r[column] || '');
-    if (v.indexOf(prefix) !== 0) return;
-    var n = Number(v.slice(prefix.length));
-    if (n > max) max = n;
-  });
-  var next = String(max + 1);
-  while (next.length < 4) next = '0' + next;
-  return prefix + next;
+/** Stable program/certificate ID: local creation timestamp to the minute plus name/surname initials. */
+function conversoProgramId_(c) {
+  var tz = spreadsheet_().getSpreadsheetTimeZone() || Session.getScriptTimeZone();
+  var stamp = Utilities.formatDate(new Date(), tz, 'ddMMyyyyHHmm');
+  var initial = function (value) {
+    var chars = Array.from(String(value || '').trim());
+    var letter = chars.find(function (x) { return /[A-Za-zÀ-ÖØ-öø-ÿ\u0600-\u06FF]/.test(x); }) || 'X';
+    return letter.toUpperCase();
+  };
+  var nameParts = String(c.nombres || '').trim().split(/\s+/).filter(String);
+  var surname = c.apellidos || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : '');
+  var base = stamp + '-' + initial(nameParts[0]) + initial(surname);
+  var id = base;
+  var sequence = 1;
+  var exists = function (candidate) { return rows_('Conversos').some(function (row) { return row.id === candidate; }); };
+  while (exists(id)) {
+    sequence++;
+    id = base + '-' + (sequence < 10 ? '0' : '') + sequence;
+  }
+  return id;
 }
 
 function maestroNames_() {
@@ -34,6 +42,28 @@ function conversoSummary_(c, names, last) {
     revisar: !!c.revisar, origen: c.origen, createdAt: c.createdAt,
     ultimoSeguimiento: info.ultimo || '', proximaFecha: info.proxima || '', proximaAccion: info.accion || '',
   };
+}
+
+function conversoAge_(c) {
+  var birth = String(c.fechaNacimiento || '').slice(0, 10);
+  if (validIsoDate_(birth)) {
+    var today = todayIso_();
+    var age = Number(today.slice(0, 4)) - Number(birth.slice(0, 4));
+    if (today.slice(5) < birth.slice(5)) age--;
+    return age >= 0 && age <= 120 ? age : null;
+  }
+  if (c.edadAlRegistro !== '' && c.edadAlRegistro !== null && c.edadAlRegistro !== undefined) {
+    var recordedAge = Number(c.edadAlRegistro);
+    if (isFinite(recordedAge) && recordedAge >= 0 && recordedAge <= 120) return recordedAge;
+  }
+  return null;
+}
+
+function listAgeFilter_(value) {
+  if (value === undefined || value === null || value === '') return null;
+  var age = Number(value);
+  if (!isFinite(age) || Math.floor(age) !== age || age < 0 || age > 120) fail_('BAD_INPUT', 'Edad de filtro no válida');
+  return age;
 }
 
 /** Last follow-up date and the nearest pending next step of each record. */
@@ -84,8 +114,7 @@ function insertConverso_(patch, meta) {
   var now = nowIso_();
   var row = {};
   SCHEMA.Conversos.forEach(function (k) { row[k] = Object.prototype.hasOwnProperty.call(patch, k) ? patch[k] : ''; });
-  // the year of registration, so records imported from the old form keep their own year
-  row.id = nextSerial_('Conversos', 'id', 'NM-' + String(meta.createdAt || now).slice(0, 4) + '-');
+  row.id = conversoProgramId_(row);
   row.estado = 'activo';
   row.origen = meta.origen;
   row.registradoPor = meta.registradoPor || '';
@@ -110,6 +139,14 @@ registerAction_('conversos.list', {
     var estado = str_(payload.estado, 20);
     var maestroId = str_(payload.maestroId, 40);
     var nacionalidad = str_(payload.nacionalidad, 60);
+    var sexo = str_(payload.sexo, 1);
+    var edadMin = listAgeFilter_(payload.edadMin);
+    var edadMax = listAgeFilter_(payload.edadMax);
+    var desde = dateOrEmpty_(payload.desde);
+    var hasta = dateOrEmpty_(payload.hasta);
+    if (sexo && sexo !== 'M' && sexo !== 'F') fail_('BAD_INPUT', 'Sexo no válido');
+    if (edadMin !== null && edadMax !== null && edadMin > edadMax) fail_('BAD_INPUT', 'Rango de edad no válido');
+    if (desde && hasta && desde > hasta) fail_('BAD_INPUT', 'Rango de fechas no válido');
     var soloRevisar = payload.revisar === true;
     var sinMaestro = payload.sinMaestro === true;
     var names = maestroNames_();
@@ -120,6 +157,14 @@ registerAction_('conversos.list', {
         if (!estado && c.estado === 'archivado' && !q) return false; // archived records appear only when asked for or searched
         if (maestroId && c.maestroId !== maestroId) return false;
         if (nacionalidad && c.nacionalidad !== nacionalidad) return false;
+        if (sexo && c.sexo !== sexo) return false;
+        if (edadMin !== null || edadMax !== null) {
+          var age = conversoAge_(c);
+          if (age === null || (edadMin !== null && age < edadMin) || (edadMax !== null && age > edadMax)) return false;
+        }
+        var registrationDate = String(c.createdAt || '').slice(0, 10);
+        if (desde && (!registrationDate || registrationDate < desde)) return false;
+        if (hasta && (!registrationDate || registrationDate > hasta)) return false;
         if (soloRevisar && !c.revisar) return false;
         if (sinMaestro && c.maestroId) return false;
         if (!q) return true;

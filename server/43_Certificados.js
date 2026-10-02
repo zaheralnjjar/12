@@ -45,7 +45,7 @@ registerAction_('certificados.issue', {
       lugarEmision: s.lugarEmision, fechaEmision: fecha, conversoId: c.id,
     };
     var row = {
-      id: newId_('c'), numero: nextSerial_('Certificados', 'numero', 'C-' + now.slice(0, 4) + '-'), conversoId: c.id,
+      id: newId_('c'), numero: c.id, conversoId: c.id,
       maestroId: c.maestroId, emisor: emisor, idioma: idioma, fecha: fecha, datos: JSON.stringify(datos),
       estado: 'valido', anuladoMotivo: '', emitidoPor: user.email, createdAt: now, updatedAt: now,
     };
