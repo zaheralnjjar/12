@@ -1,5 +1,6 @@
 // The certificate text and PDF, built from fictional frozen data.
 import assert from 'node:assert/strict'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { certificadoPdf, certificadoTexto } from '../src/export/certificado.ts'
 
 const base = {
@@ -22,4 +23,10 @@ const bytes = await certificadoPdf(base)
 assert.equal(String.fromCharCode(...bytes.slice(0, 5)), '%PDF-')
 const annulled = await certificadoPdf({ ...base, estado: 'anulado' })
 assert.ok(annulled.length > 1000)
-console.log('certificado: 10 checks passed')
+const unicode = { ...base, datos: { ...base.datos, nombreIslamico: 'عبد الله', lugarShahada: 'Mezquita 👍 العربية' } }
+const unicodePdf = await certificadoPdf(unicode)
+assert.equal(String.fromCharCode(...unicodePdf.slice(0, 5)), '%PDF-', 'unsupported Unicode is replaced safely in the PDF')
+const unicodeDoc = await PDFDocument.create()
+const standardFont = await unicodeDoc.embedFont(StandardFonts.TimesRoman)
+assert.doesNotMatch(certificadoTexto(unicode, standardFont).cierre, /Nombre islámico elegido/, 'unsupported Islamic name is omitted from the Spanish certificate')
+console.log('certificado: 12 checks passed')

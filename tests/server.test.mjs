@@ -74,6 +74,12 @@ assert.equal(full1.consentimientoContacto, '1')
 assert.ok(full1.fechaConsentimiento)
 assert.equal(full1.maestroNombre, 'Sheij Ahmad')
 assert.equal(full1.formKey, undefined)
+const ficha1 = ok(call(SUP, 'conversos.ficha', { id: c1.id }))
+assert.equal(ficha1.converso.id, c1.id)
+assert.ok(Array.isArray(ficha1.seguimiento) && Array.isArray(ficha1.progreso))
+assert.ok(Array.isArray(ficha1.documentos) && Array.isArray(ficha1.certificados))
+assert.equal(ficha1.documentos[0], undefined, 'a ficha for this record does not include documents from another record')
+assert.ok(ok(call(SUP, 'auditoria.list')).some((a) => a.accion === 'descargar_ficha' && a.objeto === c1.id))
 
 // required fields, bad values
 denied(call(SUP, 'conversos.create', { data: base({ nombres: '' }) }), 'BAD_INPUT')
@@ -101,6 +107,7 @@ const r = ok(call(COL, 'conversos.create', { data: base({ nombres: 'Pedro', what
 assert.deepEqual(r, { registrado: true })
 denied(call(COL, 'conversos.list', {}), 'FORBIDDEN')
 denied(call(COL, 'conversos.get', { id: c1.id }), 'FORBIDDEN')
+denied(call(COL, 'conversos.ficha', { id: c1.id }), 'FORBIDDEN')
 denied(call(COL, 'conversos.update', { id: c1.id, data: { nombres: 'X' } }), 'FORBIDDEN')
 denied(call(COL, 'documentos.get', { id: 'd1' }), 'FORBIDDEN')
 denied(call(COL, 'resumen'), 'FORBIDDEN')
@@ -118,6 +125,7 @@ assert.equal(ok(call(SUP, 'conversos.get', { id: pedro.id })).documentos.length,
 assert.deepEqual(ok(call(MA, 'conversos.list', {})).map((x) => x.id), [c1.id])
 assert.deepEqual(ok(call(MB, 'conversos.list', {})).map((x) => x.id).sort(), [c2.id, pedro.id].sort())
 denied(call(MA, 'conversos.get', { id: c2.id }), 'NOT_FOUND') // "not yours" looks like "not found"
+denied(call(MA, 'conversos.ficha', { id: c2.id }), 'NOT_FOUND')
 denied(call(MA, 'conversos.get', { id: 'NM-2026-9999' }), 'NOT_FOUND')
 denied(call(MA, 'conversos.update', { id: c2.id, data: { notas: 'x' } }), 'NOT_FOUND')
 denied(call(MA, 'conversos.setEstado', { id: c2.id, estado: 'archivado' }), 'NOT_FOUND')
@@ -182,12 +190,20 @@ denied(call(MA, 'documentos.upload', { conversoId: c1.id, tipo: 'dni_frente', da
 denied(call(MB, 'documentos.get', { id: doc.id }), 'NOT_FOUND')
 assert.equal(ok(call(MA, 'documentos.get', { id: doc.id })).dataUrl, JPG)
 assert.ok(ok(call(SUP, 'auditoria.list')).some((a) => a.accion === 'ver_documento' && a.email === MA))
+const fichaAsMaestro = ok(call(MA, 'conversos.ficha', { id: c1.id }))
+assert.deepEqual(Object.keys(fichaAsMaestro.documentos[0]).sort(), ['fileName', 'id', 'mime', 'tipo', 'uploadedAt'])
+assert.ok(ok(call(SUP, 'auditoria.list')).some((a) => a.accion === 'descargar_ficha' && a.email === MA && a.objeto === c1.id))
 assert.equal(s.shared.length, 0, 'no file is ever shared')
 
 // --- supervisor preview as a maestro: read only
 const prev = JSON.parse(s.ctx.doPost({ postData: { contents: JSON.stringify({ token: 'dev.' + SUP, action: 'conversos.list', payload: {}, asMaestro: ma.id }) } })._text)
 assert.equal(prev.ok, true)
 assert.deepEqual(prev.data.map((x) => x.id).sort(), [c1.id, dupe.id].sort())
+n++
+const fichaAuditCount = ok(call(SUP, 'auditoria.list')).filter((a) => a.accion === 'descargar_ficha').length
+const prevFicha = JSON.parse(s.ctx.doPost({ postData: { contents: JSON.stringify({ token: 'dev.' + SUP, action: 'conversos.ficha', payload: { id: c1.id }, asMaestro: ma.id }) } })._text)
+assert.equal(prevFicha.ok, true)
+assert.equal(ok(call(SUP, 'auditoria.list')).filter((a) => a.accion === 'descargar_ficha').length, fichaAuditCount, 'preview does not write audit rows')
 n++
 const prevW = JSON.parse(s.ctx.doPost({ postData: { contents: JSON.stringify({ token: 'dev.' + SUP, action: 'conversos.update', payload: { id: c1.id, data: { notas: 'x' } }, asMaestro: ma.id }) } })._text)
 denied(prevW, 'PREVIEW_READONLY')

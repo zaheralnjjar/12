@@ -2,6 +2,7 @@
 // Spanish only for now: the standard PDF fonts cover Spanish but not Arabic (the bilingual version needs an
 // embedded Arabic font with letter shaping, planned for the second phase).
 import { PDFDocument, StandardFonts, rgb, degrees, type PDFFont, type PDFPage } from 'pdf-lib'
+import { pdfText, pdfTextHasUnsupported } from './pdfText.ts'
 import { conSheij, fechaLarga } from '../lib/labels.ts'
 import type { CertificadoCompleto } from '../types.ts'
 
@@ -10,7 +11,7 @@ const GOLD = rgb(0.78, 0.59, 0.24)
 const INK = rgb(0.11, 0.16, 0.15)
 
 /** The text lines of the certificate (kept separate from the drawing so it can be tested). */
-export function certificadoTexto(c: CertificadoCompleto): { titulo: string; parrafos: string[]; shahada: string[]; cierre: string; firma: string } {
+export function certificadoTexto(c: CertificadoCompleto, font?: PDFFont): { titulo: string; parrafos: string[]; shahada: string[]; cierre: string; firma: string } {
   const d = c.datos
   const doc = d.numeroDocumento ? `, ${d.tipoDocumento || 'documento'} N.º ${d.numeroDocumento}` : ''
   const nac = d.nacionalidad ? `, de nacionalidad ${d.nacionalidad}` : ''
@@ -22,7 +23,7 @@ export function certificadoTexto(c: CertificadoCompleto): { titulo: string; parr
     '«Ash-hadu an la ilaha illa Allah, wa ash-hadu anna Muhammadan rasulu Allah»',
     '(Atestiguo que no hay más divinidad que Allah, y atestiguo que Muhammad es el Mensajero de Allah)',
   ]
-  const extra = d.nombreIslamico ? `Nombre islámico elegido: ${d.nombreIslamico}.` : ''
+  const extra = d.nombreIslamico && (!font || !pdfTextHasUnsupported(d.nombreIslamico, font)) ? `Nombre islámico elegido: ${d.nombreIslamico}.` : ''
   const cierre = [extra, `Se expide el presente certificado${d.lugarEmision ? ` en ${d.lugarEmision}` : ''}, el ${fechaLarga(d.fechaEmision)}.`].filter(Boolean).join(' ')
   const firma = c.emisor === 'maestro' ? conSheij(d.emisorTexto) : d.emisorTexto
   return { titulo: 'CERTIFICADO DE CONVERSIÓN AL ISLAM', parrafos, shahada, cierre, firma }
@@ -30,7 +31,7 @@ export function certificadoTexto(c: CertificadoCompleto): { titulo: string; parr
 
 /** Splits text into lines that fit `width` at `size`. */
 function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
-  const words = text.split(/\s+/)
+  const words = pdfText(text, font).split(/\s+/)
   const lines: string[] = []
   let line = ''
   for (const w of words) {
@@ -46,8 +47,9 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
 }
 
 function centered(page: PDFPage, text: string, y: number, font: PDFFont, size: number, color = INK) {
-  const w = font.widthOfTextAtSize(text, size)
-  page.drawText(text, { x: (page.getWidth() - w) / 2, y, size, font, color })
+  const safeText = pdfText(text, font)
+  const w = font.widthOfTextAtSize(safeText, size)
+  page.drawText(safeText, { x: (page.getWidth() - w) / 2, y, size, font, color })
 }
 
 export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array> {
@@ -61,7 +63,7 @@ export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array
   const serifBold = await pdf.embedFont(StandardFonts.TimesRomanBold)
   const serifItalic = await pdf.embedFont(StandardFonts.TimesRomanItalic)
   const sans = await pdf.embedFont(StandardFonts.Helvetica)
-  const t = certificadoTexto(c)
+  const t = certificadoTexto(c, serif)
 
   page.drawRectangle({ x: 28, y: 28, width: W - 56, height: H - 56, borderColor: GREEN, borderWidth: 3 })
   page.drawRectangle({ x: 36, y: 36, width: W - 72, height: H - 72, borderColor: GOLD, borderWidth: 1 })
@@ -76,14 +78,14 @@ export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array
   const margin = 78
   const width = W - margin * 2
   for (const p of t.parrafos) {
-    for (const line of wrap(p, serif, 14, width)) { page.drawText(line, { x: margin, y, size: 14, font: serif, color: INK }); y -= 21 }
+    for (const line of wrap(p, serif, 14, width)) { page.drawText(pdfText(line, serif), { x: margin, y, size: 14, font: serif, color: INK }); y -= 21 }
     y -= 10
   }
   centered(page, t.shahada[0], y, serifBold, 13, GREEN)
   y -= 20
   for (const line of wrap(t.shahada[1], serifItalic, 12, width)) { centered(page, line, y, serifItalic, 12); y -= 17 }
   y -= 18
-  for (const line of wrap(t.cierre, serif, 14, width)) { page.drawText(line, { x: margin, y, size: 14, font: serif, color: INK }); y -= 21 }
+  for (const line of wrap(t.cierre, serif, 14, width)) { page.drawText(pdfText(line, serif), { x: margin, y, size: 14, font: serif, color: INK }); y -= 21 }
 
   // signature block
   const sigY = 200
@@ -100,7 +102,7 @@ export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array
   centered(page, `Registro ${c.datos.conversoId} · Certificado ${c.numero} · Emitido el ${fechaLarga(c.fecha)}`, 60, sans, 8, rgb(0.4, 0.45, 0.43))
 
   if (c.estado === 'anulado') {
-    page.drawText('ANULADO', { x: 120, y: 330, size: 96, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
+    page.drawText(pdfText('ANULADO', serifBold), { x: 120, y: 330, size: 96, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
   }
   return pdf.save()
 }

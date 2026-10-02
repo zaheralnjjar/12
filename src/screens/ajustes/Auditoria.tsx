@@ -3,6 +3,7 @@ import { useLoad } from '../../lib/hooks.ts'
 
 const ACCION: Record<string, string> = {
   ver_documento: 'Abrió un documento',
+  descargar_ficha: 'Descargó una ficha PDF',
   exportar_lista: 'Exportó la lista',
   emitir_certificado: 'Emitió un certificado',
   anular_certificado: 'Anuló un certificado',

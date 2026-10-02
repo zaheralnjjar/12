@@ -133,29 +133,41 @@ registerAction_('conversos.list', {
   },
 });
 
+function conversoDetalle_(user, id) {
+  var c = conversoFor_(user, 'read', id);
+  var names = maestroNames_();
+  var etapas = {};
+  rows_('Etapas').forEach(function (e) { etapas[e.id] = e.nombre; });
+  return {
+    converso: conversoFull_(c),
+    seguimiento: rows_('Seguimiento')
+      .filter(function (s) { return s.conversoId === c.id; })
+      .sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : (a.createdAt < b.createdAt ? 1 : -1); })
+      .map(seguimientoView_),
+    progreso: rows_('Progreso')
+      .filter(function (p) { return p.conversoId === c.id; })
+      .map(function (p) { return { etapaId: p.etapaId, nombre: etapas[p.etapaId] || '', fecha: p.fecha, autor: p.autor }; }),
+    documentos: rows_('Documentos')
+      .filter(function (d) { return d.conversoId === c.id && !d.removedAt; })
+      .map(function (d) { return { id: d.id, tipo: d.tipo, fileName: d.fileName, mime: d.mime, uploadedAt: d.uploadedAt }; }),
+    certificados: rows_('Certificados')
+      .filter(function (x) { return x.conversoId === c.id; })
+      .map(function (x) { return certificadoView_(x, names); }),
+  };
+}
+
 registerAction_('conversos.get', {
   roles: STAFF,
+  fn: function (user, payload) { return conversoDetalle_(user, payload.id); },
+});
+
+/** Returns the same permission-filtered detail as conversos.get and records ficha downloads. */
+registerAction_('conversos.ficha', {
+  roles: STAFF,
   fn: function (user, payload) {
-    var c = conversoFor_(user, 'read', payload.id);
-    var names = maestroNames_();
-    var etapas = {};
-    rows_('Etapas').forEach(function (e) { etapas[e.id] = e.nombre; });
-    return {
-      converso: conversoFull_(c),
-      seguimiento: rows_('Seguimiento')
-        .filter(function (s) { return s.conversoId === c.id; })
-        .sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : (a.createdAt < b.createdAt ? 1 : -1); })
-        .map(seguimientoView_),
-      progreso: rows_('Progreso')
-        .filter(function (p) { return p.conversoId === c.id; })
-        .map(function (p) { return { etapaId: p.etapaId, nombre: etapas[p.etapaId] || '', fecha: p.fecha, autor: p.autor }; }),
-      documentos: rows_('Documentos')
-        .filter(function (d) { return d.conversoId === c.id && !d.removedAt; })
-        .map(function (d) { return { id: d.id, tipo: d.tipo, fileName: d.fileName, mime: d.mime, uploadedAt: d.uploadedAt }; }),
-      certificados: rows_('Certificados')
-        .filter(function (x) { return x.conversoId === c.id; })
-        .map(function (x) { return certificadoView_(x, names); }),
-    };
+    var detalle = conversoDetalle_(user, payload.id);
+    if (!user.preview) audit_(user, 'descargar_ficha', detalle.converso.id, 'PDF');
+    return detalle;
   },
 });
 
