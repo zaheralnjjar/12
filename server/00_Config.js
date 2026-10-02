@@ -111,6 +111,7 @@ var DEFAULT_SETTINGS = {
   formSheetTab: 'Respuestas de formulario 1',
   formSyncLastRunAt: '',
   formSyncLastSummary: '',
+  recordatoriosHabilitados: '0',
 };
 /** Settings the supervisor may edit through the API. */
 var EDITABLE_SETTINGS = ['orgName', 'appUrl', 'emisorCentro', 'lugarEmision', 'invitacionDias', 'invitacionMensaje', 'enlaceDocumentos'];
