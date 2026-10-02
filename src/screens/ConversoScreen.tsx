@@ -321,6 +321,7 @@ function DocumentosBox({ id, detalle, readOnly, onChange }: { id: string; detall
 
 function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; detalle: ConversoDetalle; readOnly: boolean; onChange: () => void }) {
   const [emisor, setEmisor] = useState<'maestro' | 'centro'>(detalle.converso.maestroId ? 'maestro' : 'centro')
+  const [idioma, setIdioma] = useState<'es' | 'es_ar'>('es')
   const action = useAction()
   const download = (certId: string) => action.run(async () => {
     const full = await api<CertificadoCompleto>('certificados.get', { id: certId })
@@ -358,12 +359,12 @@ function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; deta
             <option value="maestro" disabled={!detalle.converso.maestroId}>A nombre del sheij</option>
             <option value="centro">A nombre del centro islámico</option>
           </select>
-          <select aria-label="Idioma" value="es" disabled style={{ width: 'auto' }}>
+          <select aria-label="Idioma" value={idioma} onChange={(e) => setIdioma(e.target.value as 'es' | 'es_ar')} style={{ width: 'auto' }}>
             <option value="es">Español</option>
-            <option value="es_ar">Español y árabe (próximamente)</option>
+            <option value="es_ar">Español y árabe</option>
           </select>
           <button className="primary" disabled={action.busy} onClick={() => action.run(async () => {
-            const cert = await api<{ id: string }>('certificados.issue', { conversoId: id, emisor, idioma: 'es' })
+            const cert = await api<{ id: string }>('certificados.issue', { conversoId: id, emisor, idioma })
             onChange()
             const full = await api<CertificadoCompleto>('certificados.get', { id: cert.id })
             await downloadCertificado(full)

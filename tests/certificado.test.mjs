@@ -1,7 +1,9 @@
 // The certificate text and PDF, built from fictional frozen data.
 import assert from 'node:assert/strict'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
-import { certificadoPdf, certificadoTexto } from '../src/export/certificado.ts'
+import { certificadoArTexto, certificadoPdf, certificadoTexto } from '../src/export/certificado.ts'
+
+const PNG = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64'))
 
 const base = {
   id: 'c1', numero: 'C-2026-0001', conversoId: 'NM-2025-0001', maestroId: 'm1', maestroNombre: 'Ahmad', emisor: 'maestro', idioma: 'es',
@@ -23,10 +25,26 @@ const bytes = await certificadoPdf(base)
 assert.equal(String.fromCharCode(...bytes.slice(0, 5)), '%PDF-')
 const annulled = await certificadoPdf({ ...base, estado: 'anulado' })
 assert.ok(annulled.length > 1000)
+assert.equal((await PDFDocument.load(annulled)).getPageCount(), 1, 'Spanish certificate remains a single page')
+const maleBilingual = { ...base, idioma: 'es_ar', datos: { ...base.datos, nombreIslamico: 'عبد الله' } }
+const maleArabic = certificadoArTexto(maleBilingual).join(' ')
+assert.match(maleArabic, /السيد/)
+assert.match(maleArabic, /أعلن إسلامه/)
+assert.match(maleArabic, /ونطق بالشهادتين/)
+assert.match(maleArabic, /عبد الله/)
+const maleBilingualPdf = await certificadoPdf(maleBilingual, async () => PNG)
+assert.equal((await PDFDocument.load(maleBilingualPdf)).getPageCount(), 2, 'bilingual certificate has Spanish and Arabic pages')
+const femaleBilingual = { ...base, idioma: 'es_ar', datos: { ...base.datos, sexo: 'F' } }
+const femaleArabic = certificadoArTexto(femaleBilingual).join(' ')
+assert.match(femaleArabic, /السيدة/)
+assert.match(femaleArabic, /أعلنت إسلامها/)
+assert.match(femaleArabic, /ونطقت بالشهادتين/)
+const annulledBilingual = await certificadoPdf({ ...maleBilingual, estado: 'anulado' }, async () => PNG)
+assert.equal((await PDFDocument.load(annulledBilingual)).getPageCount(), 2, 'annulled bilingual certificate marks both pages')
 const unicode = { ...base, datos: { ...base.datos, nombreIslamico: 'عبد الله', lugarShahada: 'Mezquita 👍 العربية' } }
 const unicodePdf = await certificadoPdf(unicode)
 assert.equal(String.fromCharCode(...unicodePdf.slice(0, 5)), '%PDF-', 'unsupported Unicode is replaced safely in the PDF')
 const unicodeDoc = await PDFDocument.create()
 const standardFont = await unicodeDoc.embedFont(StandardFonts.TimesRoman)
 assert.doesNotMatch(certificadoTexto(unicode, standardFont).cierre, /Nombre islámico elegido/, 'unsupported Islamic name is omitted from the Spanish certificate')
-console.log('certificado: 12 checks passed')
+console.log('certificado: 24 checks passed')
