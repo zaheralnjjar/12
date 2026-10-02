@@ -131,6 +131,7 @@ legend { font-weight: 700; padding: 0 6px; }
 .rowlink strong { overflow-wrap: anywhere; }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 10px; }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 10px; }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 2px; text-align: start; align-items: flex-start; }
 .tile small { color: var(--muted); font-size: .8rem; }
 .tile strong { font-size: 1.6rem; font-variant-numeric: tabular-nums; line-height: 1.1; }

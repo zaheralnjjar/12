@@ -129,7 +129,12 @@ registerAction_('conversos.list', {
         return qDigits.length >= 4 && (String(c.numeroDocumento).indexOf(qDigits) >= 0 || String(c.whatsapp).replace(/\D/g, '').indexOf(qDigits) >= 0);
       })
       .sort(function (a, b) { return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0; })
-      .map(function (c) { return conversoSummary_(c, names, last); });
+      .map(function (c) {
+        var summary = conversoSummary_(c, names, last);
+        // Review reasons are needed only in the supervisor's explicitly filtered review queue.
+        if (user.role === 'supervisor' && soloRevisar) summary.motivosRevision = c.revisar;
+        return summary;
+      });
   },
 });
 

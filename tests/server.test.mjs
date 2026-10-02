@@ -163,6 +163,8 @@ denied(call(SUP, 'conversos.update', { id: c1.id, data: { nombres: '' } }), 'BAD
 ok(call(COL, 'conversos.create', { data: base({ nombres: 'Juan otra vez', tipoDocumento: 'DNI', numeroDocumento: '30111222', whatsapp: '11 7777 8888' }) }))
 const dupe = ok(call(SUP, 'conversos.list', { q: 'otra vez' }))[0]
 assert.equal(dupe.revisar, true)
+assert.match(ok(call(SUP, 'conversos.list', { revisar: true })).find((c) => c.id === dupe.id).motivosRevision, new RegExp('Posible duplicado de ' + c1.id))
+assert.equal(ok(call(SUP, 'conversos.list', { q: 'otra vez' })).find((c) => c.id === dupe.id).motivosRevision, undefined, 'review reasons are only included in the supervisor review queue')
 assert.match(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, new RegExp('Posible duplicado de ' + c1.id))
 ok(call(SUP, 'conversos.revisado', { id: dupe.id }))
 assert.equal(ok(call(SUP, 'conversos.get', { id: dupe.id })).converso.revisar, '')

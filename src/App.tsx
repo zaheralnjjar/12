@@ -12,6 +12,7 @@ import { ConversosScreen, type Filtro } from './screens/ConversosScreen.tsx'
 import { EnlacesScreen } from './screens/EnlacesScreen.tsx'
 import { HomeScreen } from './screens/HomeScreen.tsx'
 import { PerfilScreen } from './screens/PerfilScreen.tsx'
+import { RevisionScreen } from './screens/RevisionScreen.tsx'
 import { PublicRegistro } from './screens/PublicRegistro.tsx'
 import { RegistroScreen } from './screens/RegistroScreen.tsx'
 import type { Catalogo, MaestroRef, Me } from './types.ts'
@@ -24,6 +25,7 @@ type View =
   | { name: 'enlaces' }
   | { name: 'ajustes'; seccion?: string }
   | { name: 'perfil' }
+  | { name: 'revision' }
 
 export default function App() {
   const token = invitationToken()
@@ -124,6 +126,8 @@ function SignedIn() {
     body = <ConversoScreen id={view.id} role={role} catalogo={cat} readOnly={!!preview} onDeleted={() => goBack(() => show({ name: 'conversos' }))} />
   } else if (view.name === 'conversos') {
     body = <ConversosScreen role={role} catalogo={cat} filtro={view.filtro} onOpen={open} />
+  } else if (view.name === 'revision' && role === 'supervisor') {
+    body = <RevisionScreen catalogo={cat} onOpen={open} onChanged={() => setCatKey((k) => k + 1)} />
   } else if (view.name === 'nuevo' && !preview) {
     body = <RegistroScreen role={role} catalogo={cat} onCreated={(id) => id && show({ name: 'converso', id })} />
   } else if (view.name === 'enlaces') {
@@ -148,6 +152,7 @@ function SignedIn() {
         nombre={preview?.nombre || me.maestro?.nombre || ''}
         onOpen={open}
         onList={(filtro) => setView({ name: 'conversos', filtro })}
+        onRevision={() => setView({ name: 'revision' })}
         onNuevo={() => setView({ name: 'nuevo' })}
       />
     )

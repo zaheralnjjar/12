@@ -45,6 +45,7 @@ export type ConversoResumen = {
   maestroNombre: string
   estado: Estado
   revisar: boolean
+  motivosRevision?: string
   origen: string
   createdAt: string
   ultimoSeguimiento: string

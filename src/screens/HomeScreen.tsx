@@ -4,11 +4,12 @@ import { ESTADO_LABEL, fecha } from '../lib/labels.ts'
 import type { Resumen, Role } from '../types.ts'
 import type { Filtro } from './ConversosScreen.tsx'
 
-export function HomeScreen({ role, nombre, onOpen, onList, onNuevo }: {
+export function HomeScreen({ role, nombre, onOpen, onList, onRevision, onNuevo }: {
   role: Role
   nombre: string
   onOpen: (id: string) => void
   onList: (f: Filtro) => void
+  onRevision: () => void
   onNuevo: () => void
 }) {
   const r = useLoad(() => api<Resumen>('resumen'), 'resumen')
@@ -24,7 +25,7 @@ export function HomeScreen({ role, nombre, onOpen, onList, onNuevo }: {
       <div className="tiles">
         <button className="tile" onClick={() => onList({})}><small>{role === 'maestro' ? 'Mis registros' : 'Registros'}</small><strong>{d.total}</strong></button>
         <div className="tile"><small>Shahadas de este mes</small><strong>{d.delMes}</strong></div>
-        {d.revisar > 0 && <button className="tile" onClick={() => onList({ revisar: true })}><small>A revisar</small><strong>{d.revisar}</strong></button>}
+        {d.revisar > 0 && (role === 'supervisor' ? <button className="tile" onClick={onRevision}><small>A revisar</small><strong>{d.revisar}</strong></button> : <button className="tile" onClick={() => onList({ revisar: true })}><small>A revisar</small><strong>{d.revisar}</strong></button>)}
         {Object.entries(d.porEstado).filter(([k]) => k !== 'activo').map(([k, v]) => (
           <button className="tile" key={k} onClick={() => onList({ estado: k })}><small>{ESTADO_LABEL[k]}</small><strong>{v}</strong></button>
         ))}
