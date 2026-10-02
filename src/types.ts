@@ -53,6 +53,18 @@ export type ConversoResumen = {
   proximaAccion: string
 }
 
+export type Estadisticas = {
+  total: number
+  diasSinSeguimiento: number
+  fechaCorte: string
+  porMes: { key: string; nombre: string; total: number }[]
+  porAnio: { key: string; nombre: string; total: number }[]
+  porMaestro: { key: string; nombre: string; total: number }[]
+  porNacionalidad: { key: string; nombre: string; total: number }[]
+  porEstado: { key: string; nombre: string; total: number }[]
+  sinSeguimiento: { id: string; nombre: string; ultimoSeguimiento: string }[]
+}
+
 export type ExtraValue = string | string[]
 
 /** The whole record: every column of the sheet as text, plus the custom answers. */
@@ -74,6 +86,8 @@ export type Seguimiento = {
   proximaFecha: string
   createdAt: string
 }
+
+export type SeguimientoPendiente = { id: string; nombre: string; proximaFecha: string; proximaAccion: string; vencido: boolean }
 
 export type Documento = { id: string; tipo: string; fileName: string; mime: string; uploadedAt: string }
 
@@ -109,7 +123,7 @@ export type CertificadoDatos = {
   conversoId: string
 }
 
-export type CertificadoCompleto = Certificado & { datos: CertificadoDatos; firma: string | null; orgName: string }
+export type CertificadoCompleto = Certificado & { datos: CertificadoDatos; firma: string | null; orgName: string; verificationUrl?: string }
 
 export type ConversoDetalle = {
   converso: Converso

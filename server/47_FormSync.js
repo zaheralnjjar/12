@@ -366,3 +366,30 @@ registerAction_('formSync.rematch', {
     return { asignados: fixed, sinReconocer: pending };
   },
 });
+
+/** Refreshes only the two dynamic dropdowns in the Google Form linked to the response sheet. */
+registerAction_('formSync.updateChoices', {
+  roles: [ROLES.SUPERVISOR],
+  write: true,
+  fn: function () {
+    var source = formSyncOpen_();
+    var url = typeof source.ss.getFormUrl === 'function' ? source.ss.getFormUrl() : '';
+    if (!url) fail_('NOT_CONFIGURED', 'La hoja de respuestas no tiene un formulario vinculado');
+    var form;
+    try { form = FormApp.openByUrl(url); } catch (e) { fail_('BAD_INPUT', 'No se pudo abrir el formulario vinculado'); }
+    var choices = {
+      nacionalidad: nacionalidadNames_(false),
+      maestro: rows_('Maestros').filter(function (m) { return m.active === '1'; }).map(function (m) { return m.nombre; }),
+    };
+    var updated = { nacionalidad: 0, maestro: 0 };
+    form.getItems(FormApp.ItemType.LIST).forEach(function (item) {
+      var key = looseKey_(item.getTitle());
+      var target = key.indexOf('nacionalidad') >= 0 ? 'nacionalidad' :
+        (key.indexOf('sheij') >= 0 || key.indexOf('sheikh') >= 0 || key.indexOf('sheik') >= 0 || key.indexOf('jeque') >= 0 || key.indexOf('maestro') >= 0 ? 'maestro' : '');
+      if (!target) return;
+      item.asListItem().setChoiceValues(choices[target]);
+      updated[target]++;
+    });
+    return { updated: updated, choices: { nacionalidades: choices.nacionalidad.length, maestros: choices.maestro.length } };
+  },
+});

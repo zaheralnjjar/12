@@ -17,7 +17,11 @@ const ma = ok(call(SUP, 'maestros.save', { nombre: 'Sheij Ahmad', email: MA, ali
 
 // the response sheet, with the real column titles and made-up answers
 const src = s.ctx.SpreadsheetApp.create('Respuestas (prueba)')
+const linkedFormUrl = src._formUrl
 const sh = src.insertSheet('Respuestas de formulario 1')
+const nacionalidadChoices = src._form.addListItem('Nacionalidad')
+const sheijChoices = src._form.addListItem('Con el sheij')
+const unrelatedChoices = src._form.addListItem('Provincia', ['Buenos Aires'])
 sh.appendRow(['Marca temporal', 'Nombre completo ', 'Edad ', 'Ciudad donde vives ', '¿Qué días tienes posibilidad de acercarte a la mezquita a rezar?',
   'WhatsApp ', 'Trabajo', 'Estudio', 'Dni', 'Nacionalidad ', 'Fecha cuando abrazo el islam ', 'Con el sheij ', 'Foto', 'Idioma materno'])
 const t = (iso) => new Date(iso)
@@ -33,8 +37,24 @@ denied(call(SUP, 'formSync.setSource', { source: 'not a link' }), 'BAD_INPUT')
 denied(call(SUP, 'formSync.setSource', { source: src.getId(), tab: 'Hoja que no existe' }), 'BAD_INPUT')
 denied(call(MA, 'formSync.setSource', { source: src.getId() }), 'FORBIDDEN')
 denied(call(MA, 'formSync.run'), 'FORBIDDEN')
+denied(call(MA, 'formSync.updateChoices'), 'FORBIDDEN')
+ok(call(SUP, 'usuarios.save', { email: 'colaborador@example.com', role: 'colaborador' }))
+denied(call('colaborador@example.com', 'formSync.updateChoices'), 'FORBIDDEN')
+denied(call('colaborador@example.com', 'formSync.preview'), 'FORBIDDEN')
 ok(call(SUP, 'formSync.setSource', { source: `https://docs.google.com/spreadsheets/d/${src.getId()}/edit#gid=0` }))
 assert.equal(ok(call(SUP, 'formSync.status')).configured, true)
+const responseRowsBeforeChoices = JSON.stringify(sh._data)
+const refreshed = ok(call(SUP, 'formSync.updateChoices'))
+assert.deepEqual(JSON.parse(JSON.stringify(refreshed.updated)), { nacionalidad: 1, maestro: 1 })
+assert.ok(Array.from(nacionalidadChoices.getChoiceValues()).includes('Argentina'))
+assert.deepEqual(Array.from(sheijChoices.getChoiceValues()), ['Sheij Ahmad'])
+assert.deepEqual(Array.from(unrelatedChoices.getChoiceValues()), ['Buenos Aires'])
+assert.equal(JSON.stringify(sh._data), responseRowsBeforeChoices, 'choice update never writes the response sheet')
+src.setFormUrl('')
+denied(call(SUP, 'formSync.updateChoices'), 'NOT_CONFIGURED')
+src.setFormUrl('https://docs.google.com/forms/d/form_' + 'not-linked' + '/edit')
+denied(call(SUP, 'formSync.updateChoices'), 'BAD_INPUT')
+src.setFormUrl(linkedFormUrl)
 
 // a custom field whose label matches a new question is filled from it
 const campos = ok(call(SUP, 'campos.save', { etiqueta: 'Idioma materno', tipo: 'text', seccion: 'personal' }))

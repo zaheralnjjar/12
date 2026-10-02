@@ -72,6 +72,7 @@ export function Formulario({ onOpen }: { onOpen: (id: string) => void }) {
             <button disabled={action.busy} onClick={() => action.run(async () => setResult({ p: await api<Pass>('formSync.preview'), dry: true }))}>Vista previa</button>
             <button className="primary" disabled={action.busy} onClick={() => action.run(async () => { setResult({ p: await api<Pass>('formSync.run'), dry: false }); st.reload() })}>Importar respuestas nuevas</button>
             <button disabled={action.busy} onClick={() => action.run(async () => { const r = await api<{ asignados: number; sinReconocer: number }>('formSync.rematch'); return `Sheij asignados: ${r.asignados}. Sin reconocer todavía: ${r.sinReconocer}.` })}>Volver a reconocer sheij</button>
+            <button disabled={action.busy} onClick={() => action.run(async () => { const r = await api<{ updated: { nacionalidad: number; maestro: number }; choices: { nacionalidades: number; maestros: number } }>('formSync.updateChoices'); return `Listas actualizadas: nacionalidades (${r.choices.nacionalidades}) y sheij (${r.choices.maestros}). Preguntas modificadas: ${r.updated.nacionalidad + r.updated.maestro}.` })}>Actualizar listas del formulario</button>
           </div>
           <span className="help">«Volver a reconocer sheij»: después de agregar otras formas de escribir un nombre en «Sheij / maestros», asigna los registros que quedaron sin sheij.</span>
         </div>

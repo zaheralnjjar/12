@@ -49,9 +49,13 @@ registerAction_('certificados.issue', {
       maestroId: c.maestroId, emisor: emisor, idioma: idioma, fecha: fecha, datos: JSON.stringify(datos),
       estado: 'valido', anuladoMotivo: '', emitidoPor: user.email, createdAt: now, updatedAt: now,
     };
+    var verificationToken = newToken_();
+    row.verificationHash = tokenHash_(verificationToken);
     insert_('Certificados', row);
     audit_(user, 'emitir_certificado', c.id, row.numero);
-    return certificadoView_(row, maestroNames_());
+    var issued = certificadoView_(row, maestroNames_());
+    issued.verificationToken = verificationToken;
+    return issued;
   },
 });
 
@@ -82,6 +86,20 @@ registerAction_('certificados.get', {
     }
     v.orgName = getSettings_().orgName;
     return v;
+  },
+});
+
+/** Re-issue the QR secret when a certificate is reprinted; only the new hash remains stored. */
+registerAction_('certificados.verifyToken', {
+  roles: STAFF,
+  write: true,
+  fn: function (user, payload) {
+    var cert = certificadoFor_(user, 'read', payload.id);
+    var token = newToken_();
+    var hashes = String(cert.verificationHash || '').split('|').filter(String);
+    hashes.push(tokenHash_(token));
+    update_('Certificados', cert, { verificationHash: hashes.join('|'), updatedAt: nowIso_() });
+    return { token: token };
   },
 });
 

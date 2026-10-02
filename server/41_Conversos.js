@@ -296,3 +296,54 @@ registerAction_('resumen', {
     };
   },
 });
+
+/** Aggregates and overdue follow-ups are derived only from records readable by the caller. */
+registerAction_('estadisticas', {
+  roles: STAFF,
+  fn: function (user, payload) {
+    var days = Number(payload.diasSinSeguimiento);
+    if (!isFinite(days)) days = 30;
+    days = Math.max(1, Math.min(365, Math.floor(days)));
+    var list = readableConversos_(user);
+    var last = followUpIndex_();
+    var byMonth = {};
+    var byYear = {};
+    var byMaestro = {};
+    var byNacionalidad = {};
+    var byEstado = {};
+    var cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    list.forEach(function (c) {
+      var date = String(c.fechaShahada || c.createdAt || '').slice(0, 10);
+      var year = date.slice(0, 4) || 'Sin fecha';
+      var month = date.slice(0, 7) || 'Sin fecha';
+      byMonth[month] = (byMonth[month] || 0) + 1;
+      byYear[year] = (byYear[year] || 0) + 1;
+      byMaestro[c.maestroId || ''] = (byMaestro[c.maestroId || ''] || 0) + 1;
+      byNacionalidad[c.nacionalidad || 'Sin nacionalidad'] = (byNacionalidad[c.nacionalidad || 'Sin nacionalidad'] || 0) + 1;
+      byEstado[c.estado || 'activo'] = (byEstado[c.estado || 'activo'] || 0) + 1;
+    });
+    var names = maestroNames_();
+    var withoutFollowUp = list.filter(function (c) {
+      if ((c.estado || 'activo') === 'archivado') return false;
+      var latest = last[c.id] && last[c.id].ultimo;
+      return !latest || latest < cutoff;
+    }).map(function (c) {
+      return { id: c.id, nombre: fullName_(c), ultimoSeguimiento: last[c.id] && last[c.id].ultimo || '' };
+    });
+    function rows(map, name) {
+      return Object.keys(map).map(function (key) { return { key: key, nombre: name ? name(key) : key, total: map[key] }; });
+    }
+    function byKey(list) {
+      return list.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
+    }
+    function byTotal(list) {
+      return list.sort(function (a, b) { return b.total - a.total || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0); });
+    }
+    return {
+      total: list.length, diasSinSeguimiento: days, fechaCorte: cutoff,
+      porMes: byKey(rows(byMonth)), porAnio: byKey(rows(byYear)),
+      porMaestro: byTotal(rows(byMaestro, function (id) { return names[id] || 'Sin sheij asignado'; })),
+      porNacionalidad: byTotal(rows(byNacionalidad)), porEstado: byTotal(rows(byEstado)), sinSeguimiento: withoutFollowUp,
+    };
+  },
+});
