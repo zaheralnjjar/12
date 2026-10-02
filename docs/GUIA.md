@@ -36,7 +36,7 @@ El colaborador usa el formulario interno para registrar a una persona. Después 
 
 1. Completá los datos que conozcas; los campos obligatorios están marcados con un asterisco.
 2. Comprobá el consentimiento antes de marcar que acepta contacto por WhatsApp.
-3. Adjuntá documentos solo cuando corresponda. Se guardan en privado.
+3. Adjuntá documentos solo cuando corresponda. Se guardan en privado. La partida de nacimiento es opcional.
 4. Seleccioná **Registrar** una vez revisada la información.
 
 ![Formulario del colaborador con campos vacíos y datos ficticios de demostración](screenshots/demo-colaborador.jpg)

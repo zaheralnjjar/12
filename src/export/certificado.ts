@@ -1,6 +1,4 @@
 // The certificate of embracing Islam as a PDF, drawn in the browser from the data the server froze when it was issued.
-// Spanish only for now: the standard PDF fonts cover Spanish but not Arabic (the bilingual version needs an
-// embedded Arabic font with letter shaping, planned for the second phase).
 import { PDFDocument, StandardFonts, rgb, degrees, type PDFFont, type PDFPage } from 'pdf-lib'
 import { pdfText, pdfTextHasUnsupported } from './pdfText.ts'
 import { conSheij, fechaLarga } from '../lib/labels.ts'
@@ -29,6 +27,30 @@ export function certificadoTexto(c: CertificadoCompleto, font?: PDFFont): { titu
   return { titulo: 'CERTIFICADO DE CONVERSIÓN AL ISLAM', parrafos, shahada, cierre, firma }
 }
 
+export function certificadoArTexto(c: CertificadoCompleto): string[] {
+  const d = c.datos
+  const feminine = d.sexo === 'F'
+  const dateAr = (value: string) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '')
+    const months = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+    return match && months[Number(match[2])] ? `${Number(match[3])} ${months[Number(match[2])]} ${match[1]}` : fechaLarga(value)
+  }
+  const doc = d.numeroDocumento ? `، حامل${feminine ? 'ة' : ''} الوثيقة ${d.tipoDocumento || 'الهوية'} رقم ${d.numeroDocumento}` : ''
+  const nationality = d.nacionalidad ? `، ${d.nacionalidad}` : ''
+  const place = d.lugarShahada ? `، في ${d.lugarShahada}` : ''
+  const issuer = d.emisorTexto
+  const lines = [
+    'شهادة إشهار إسلام',
+    `رقم: ${c.numero}`,
+    `نشهد بأن ${feminine ? 'السيدة' : 'السيد'}: ${d.nombre}${nationality}${doc}، قد ${feminine ? 'أعلنت إسلامها' : 'أعلن إسلامه'} طوعًا واختيارًا بتاريخ ${dateAr(d.fechaShahada)}${place}،`,
+    `${feminine ? 'ونطقت' : 'ونطق'} بالشهادتين: «أشهد أن لا إله إلا الله، وأشهد أن محمدًا رسول الله».`,
+  ]
+  if (d.nombreIslamico) lines.push(`الاسم الإسلامي المختار: ${d.nombreIslamico}.`)
+  lines.push(`وقد ${feminine ? 'أُعطيت هذه الشهادة بناءً على طلبها' : 'أُعطي هذه الشهادة بناءً على طلبه'}${d.lugarEmision ? `، في ${d.lugarEmision}` : ''}، بتاريخ ${dateAr(d.fechaEmision)}.`)
+  if (issuer) lines.push(issuer)
+  return lines
+}
+
 /** Splits text into lines that fit `width` at `size`. */
 function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
   const words = pdfText(text, font).split(/\s+/)
@@ -52,7 +74,19 @@ function centered(page: PDFPage, text: string, y: number, font: PDFFont, size: n
   page.drawText(safeText, { x: (page.getWidth() - w) / 2, y, size, font, color })
 }
 
-export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array> {
+async function drawVerificationQr(pdf: PDFDocument, page: PDFPage, verificationUrl: string, labelFont: PDFFont) {
+  const QRCode = await import('qrcode')
+  const dataUrl = await QRCode.toDataURL(verificationUrl, { errorCorrectionLevel: 'Q', margin: 1, width: 256 })
+  const data = Uint8Array.from(atob(dataUrl.split(',')[1]), (char) => char.charCodeAt(0))
+  const image = await pdf.embedPng(data)
+  const size = 66
+  const x = page.getWidth() - size - 30
+  const y = 82
+  page.drawImage(image, { x, y, width: size, height: size })
+  page.drawText('Verificar', { x: x + 8, y: y - 10, size: 6, font: labelFont, color: GREEN })
+}
+
+export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: (lines: string[]) => Promise<Uint8Array>): Promise<Uint8Array> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(`Certificado ${c.numero}`)
   pdf.setLanguage('es')
@@ -103,6 +137,20 @@ export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array
 
   if (c.estado === 'anulado') {
     page.drawText(pdfText('ANULADO', serifBold), { x: 120, y: 330, size: 96, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
+  }
+  if (c.verificationUrl) await drawVerificationQr(pdf, page, c.verificationUrl, sans)
+  if (c.idioma === 'es_ar') {
+    const drawArabic = renderArabic || (await import('./arabicRaster.ts')).renderArabicLines
+    const arabicPage = pdf.addPage([595.28, 841.89])
+    arabicPage.drawRectangle({ x: 28, y: 28, width: W - 56, height: H - 56, borderColor: GREEN, borderWidth: 3 })
+    arabicPage.drawRectangle({ x: 36, y: 36, width: W - 72, height: H - 72, borderColor: GOLD, borderWidth: 1 })
+    const png = await pdf.embedPng(await drawArabic(certificadoArTexto(c)))
+    const scale = Math.min((W - 115) / png.width, (H - 150) / png.height)
+    arabicPage.drawImage(png, { x: (W - png.width * scale) / 2, y: (H - png.height * scale) / 2, width: png.width * scale, height: png.height * scale })
+    if (c.estado === 'anulado') {
+      arabicPage.drawText('ANULADO', { x: 180, y: 350, size: 62, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
+    }
+    if (c.verificationUrl) await drawVerificationQr(pdf, arabicPage, c.verificationUrl, sans)
   }
   return pdf.save()
 }

@@ -78,14 +78,14 @@ function wrapped(text: string, font: PDFFont, size: number, maxWidth: number): s
   return out
 }
 
-export async function fichaPdf(detalle: ConversoDetalle, campos: Campo[]): Promise<Uint8Array> {
+export async function fichaPdf(detalle: ConversoDetalle, campos: Campo[], renderArabicName?: (text: string) => Promise<Uint8Array>): Promise<Uint8Array> {
   const text = fichaTexto(detalle, campos)
   const pdf = await PDFDocument.create()
   pdf.setTitle(`Ficha · ${text.nombre} · ${text.id}`)
   pdf.setLanguage('es-AR')
   const regular = await pdf.embedFont(StandardFonts.Helvetica)
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
-  let page: PDFPage
+  let page!: PDFPage
   let y = 0
   const newPage = () => { page = pdf.addPage([PAGE_W, PAGE_H]); y = PAGE_H - MARGIN }
   const ensure = (height: number) => { if (y - height < MARGIN) newPage() }
@@ -113,7 +113,18 @@ export async function fichaPdf(detalle: ConversoDetalle, campos: Campo[]): Promi
   paragraph(`${text.id} · ${text.estado} · Sheij / maestro: ${text.sheij}`, regular, 10, 0, MUTED)
   for (const seccion of text.secciones) {
     heading(seccion.titulo)
-    for (const fila of seccion.filas) paragraph(`${fila.etiqueta}: ${fila.valor}`, regular, 10, 8)
+    for (const fila of seccion.filas) {
+      if (/[\u0600-\u06ff]/.test(fila.valor)) {
+        paragraph(`${fila.etiqueta}:`, regular, 10, 8)
+        const drawArabicName = renderArabicName || (await import('./arabicRaster.ts')).renderArabicName
+        const png = await pdf.embedPng(await drawArabicName(fila.valor))
+        const height = 27
+        ensure(height)
+        y -= height
+        const scale = Math.min((PAGE_W - MARGIN * 2 - 8) / png.width, height / png.height)
+        page.drawImage(png, { x: MARGIN + 8, y: y + 2, width: png.width * scale, height: png.height * scale })
+      } else paragraph(`${fila.etiqueta}: ${fila.valor}`, regular, 10, 8)
+    }
   }
   const blocks: [string, string[]][] = [
     ['Seguimiento', text.seguimiento],

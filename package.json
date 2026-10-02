@@ -9,16 +9,18 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "dev:server": "node tests/dev-server.mjs",
-    "test": "node tests/server.test.mjs && node tests/fields.test.mjs && node tests/formsync.test.mjs && node --experimental-strip-types --no-warnings tests/whatsapp.test.mjs && node --experimental-strip-types --no-warnings tests/signature.test.mjs && node --experimental-strip-types --no-warnings tests/certificado.test.mjs && node --experimental-strip-types --no-warnings tests/ficha.test.mjs && node --experimental-strip-types --no-warnings tests/revision.test.mjs"
+    "test": "node tests/server.test.mjs && node tests/fields.test.mjs && node tests/formsync.test.mjs && node tests/reminders.test.mjs && node --experimental-strip-types --no-warnings tests/whatsapp.test.mjs && node --experimental-strip-types --no-warnings tests/signature.test.mjs && node --experimental-strip-types --no-warnings tests/certificado.test.mjs && node --experimental-strip-types --no-warnings tests/ficha.test.mjs && node --experimental-strip-types --no-warnings tests/revision.test.mjs"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
     "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

@@ -18,6 +18,7 @@ const detalle = {
   certificados: [{ numero: 'C-2026-0001', fecha: '2026-09-03', estado: 'anulado', anuladoMotivo: 'Dato incorrecto' }],
 }
 const campos = [
+  { key: 'nombreIslamico', etiqueta: 'Nombre islámico', tipo: 'text', seccion: 'personal', active: true },
   { key: 'sexo', etiqueta: 'Sexo', tipo: 'sexo', seccion: 'personal', active: true },
   { key: 'nacionalidad', etiqueta: 'Nacionalidad', tipo: 'text', seccion: 'personal', active: true },
   { key: 'numeroDocumento', etiqueta: 'Número de documento', tipo: 'text', seccion: 'documento', active: true },
@@ -32,11 +33,15 @@ assert.deepEqual(t.documentos, ['DNI (frente) · 01/09/2026'], 'documents use a 
 assert.equal(t.sheij, 'Sheij Ahmad', 'maestro honorific is not repeated')
 assert.ok(t.certificados.some((row) => row.includes('C-2026-0001')))
 assert.ok(!JSON.stringify(t).includes('dataUrl'))
-const pdf = await fichaPdf(detalle, campos)
+assert.ok(t.secciones.some((s) => s.filas.some((f) => f.etiqueta === 'Nombre islámico' && f.valor === 'عبد الله')))
+const renderedNames = []
+const renderArabicName = async (name) => { renderedNames.push(name); return Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')) }
+const pdf = await fichaPdf(detalle, campos, renderArabicName)
 assert.equal(String.fromCharCode(...pdf.slice(0, 5)), '%PDF-')
+assert.ok(renderedNames.includes('عبد الله'), 'Islamic name is sent to Arabic raster rendering instead of the standard PDF font')
 const longDetalle = { ...detalle, seguimiento: Array.from({ length: 8 }, (_, i) => ({
   fecha: '2026-09-01', tipo: 'llamada', resumen: `Nota larga ${i}: ${'contenido ficticio '.repeat(350)}`, proximaAccion: '', proximaFecha: '',
 })) }
-const longPdf = await fichaPdf(longDetalle, campos)
+const longPdf = await fichaPdf(longDetalle, campos, renderArabicName)
 assert.ok((await PDFDocument.load(longPdf)).getPageCount() > 1, 'long ficha text continues onto additional pages')
 console.log('ficha: 10 checks passed')
