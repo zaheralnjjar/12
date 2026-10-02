@@ -33,7 +33,7 @@ function sendDailyReminders() {
   var latest = {};
   rows_('Seguimiento').forEach(function (step) {
     var current = latest[step.conversoId];
-    if (!current || step.fecha > current.fecha || (step.fecha === current.fecha && step.createdAt > current.createdAt)) latest[step.conversoId] = step;
+    if (!current || isLaterSeguimiento_(step, current)) latest[step.conversoId] = step;
   });
   var overdueByMaestro = {};
   rows_('Conversos').forEach(function (c) {

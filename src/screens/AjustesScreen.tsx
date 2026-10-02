@@ -9,6 +9,7 @@ import { Formulario } from './ajustes/Formulario.tsx'
 import { General } from './ajustes/General.tsx'
 import { Etapas, Nacionalidades } from './ajustes/Listas.tsx'
 import { Maestros } from './ajustes/Maestros.tsx'
+import { T } from '../lib/i18n.tsx'
 
 const SECCIONES: [string, string, string][] = [
   ['general', 'General', 'Nombre del centro, dirección de la app, certificados, enlaces'],
@@ -45,12 +46,12 @@ export function AjustesScreen({ seccion, catalogo, onSeccion, onCatalogChanged, 
   }
   return (
     <div className="stack">
-      <h1>Ajustes</h1>
+      <h1><T>Ajustes</T></h1>
       <div className="menu">
         {SECCIONES.map(([id, t, d]) => (
           <button key={id} className="card" onClick={() => onSeccion(id)}>
-            <strong>{t}</strong>
-            <small>{d}</small>
+            <strong><T>{t}</T></strong>
+            <small><T>{d}</T></small>
           </button>
         ))}
       </div>

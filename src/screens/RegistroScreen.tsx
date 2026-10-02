@@ -7,6 +7,7 @@ import { emptyValues, toPayload, type FormValues } from '../lib/formValues.ts'
 import { DocPicker } from '../components/DocPicker.tsx'
 import { useAction } from '../lib/hooks.ts'
 import type { Catalogo, DocAdjunto, Role } from '../types.ts'
+import { T } from '../lib/i18n.tsx'
 
 export function RegistroScreen({ role, catalogo, onCreated }: { role: Role; catalogo: Catalogo; onCreated: (id: string) => void }) {
   const [values, setValues] = useState<FormValues>(emptyValues)
@@ -19,9 +20,9 @@ export function RegistroScreen({ role, catalogo, onCreated }: { role: Role; cata
   if (sent) {
     return (
       <div className="stack">
-        <p className="ok">La persona quedó registrada. Gracias.</p>
-        {role === 'colaborador' && <p className="muted">Por privacidad, los datos enviados ya no se muestran en esta cuenta.</p>}
-        <button className="primary big" onClick={() => { setValues(emptyValues()); setDocs([]); setSent(false); window.scrollTo(0, 0) }}>Registrar otra persona</button>
+        <p className="ok"><T>La persona quedó registrada. Gracias.</T></p>
+        {role === 'colaborador' && <p className="muted"><T>Por privacidad, los datos enviados ya no se muestran en esta cuenta.</T></p>}
+        <button className="primary big" onClick={() => { setValues(emptyValues()); setDocs([]); setSent(false); window.scrollTo(0, 0) }}><T>Registrar otra persona</T></button>
       </div>
     )
   }
@@ -41,12 +42,12 @@ export function RegistroScreen({ role, catalogo, onCreated }: { role: Role; cata
         })
       }}
     >
-      <h1>Registrar nuevo musulmán</h1>
-      <p className="muted small">Los campos con <span className="req">*</span> son obligatorios.</p>
+      <h1><T>Registrar nuevo musulmán</T></h1>
+      <p className="muted small"><T>Los campos con </T><span className="req"><T>*</T></span> <T> <T> son obligatorios.</T></T></p>
       <ConversoForm campos={campos} values={values} onChange={setValues} lists={lists} hide={role === 'maestro' ? ['maestroId'] : []} />
       <DocPicker docs={docs} onChange={setDocs} />
-      {action.error && <p className="alert">{action.error}</p>}
-      <button className="primary big" disabled={action.busy}>{action.busy ? 'Enviando…' : 'Registrar'}</button>
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
+      <button className="primary big" disabled={action.busy}><T>{action.busy ? 'Enviando…' : 'Registrar'}</T></button>
     </form>
   )
 }

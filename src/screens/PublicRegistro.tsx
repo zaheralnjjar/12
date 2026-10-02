@@ -7,6 +7,7 @@ import { emptyValues, toPayload, type FormValues } from '../lib/formValues.ts'
 import { DocPicker } from '../components/DocPicker.tsx'
 import { useAction, useLoad } from '../lib/hooks.ts'
 import type { DocAdjunto, FormularioPublico } from '../types.ts'
+import { LanguageSwitcher, T } from '../lib/i18n.tsx'
 
 export function PublicRegistro({ token }: { token: string }) {
   const form = useLoad(() => publicApi<FormularioPublico>('public.form', { token }), 'public-form')
@@ -18,14 +19,15 @@ export function PublicRegistro({ token }: { token: string }) {
   return (
     <div className="public">
       <header>
+        <LanguageSwitcher />
         <img src="/icons/icon.svg" alt="" width={64} height={64} style={{ alignSelf: 'center' }} />
         <h1>{form.data?.org || 'Nuevo Musulmán'}</h1>
-        {!sent && form.data && <p className="muted">Assalamu alaikum. Completá tus datos para que podamos acompañarte. Solo los verá el equipo del centro.</p>}
+        {!sent && form.data && <p className="muted"><T>Assalamu alaikum. Completá tus datos para que podamos acompañarte. Solo los verá el equipo del centro.</T></p>}
       </header>
       <main className="stack">
-        {form.error && <p className="alert">{form.error}</p>}
-        {!form.data && !form.error && <p className="muted center">Cargando…</p>}
-        {sent && <p className="ok center">¡Gracias! Recibimos tus datos. Que Allah te bendiga.</p>}
+        {form.error && <p className="alert"><T>{form.error}</T></p>}
+        {!form.data && !form.error && <p className="muted center"><T>Cargando…</T></p>}
+        {sent && <p className="ok center"><T>¡Gracias! Recibimos tus datos. Que Allah te bendiga.</T></p>}
         {form.data && !sent && (
           <form className="stack" onSubmit={(e) => {
             e.preventDefault()
@@ -37,9 +39,9 @@ export function PublicRegistro({ token }: { token: string }) {
           }}>
             <ConversoForm campos={form.data.campos} values={values} onChange={setValues} lists={{ nacionalidades: form.data.nacionalidades, maestros: [] }} />
             {form.data.documentos && <DocPicker docs={docs} onChange={setDocs} />}
-            {action.error && <p className="alert">{action.error}</p>}
-            <button className="primary big" disabled={action.busy}>{action.busy ? 'Enviando…' : 'Enviar mis datos'}</button>
-            <p className="help center">Tus datos se usan solo para el acompañamiento del centro y no se comparten.</p>
+            {action.error && <p className="alert"><T>{action.error}</T></p>}
+            <button className="primary big" disabled={action.busy}><T>{action.busy ? 'Enviando…' : 'Enviar mis datos'}</T></button>
+            <p className="help center"><T>Tus datos se usan solo para el acompañamiento del centro y no se comparten.</T></p>
           </form>
         )}
       </main>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../../api.ts'
 import { useAction, useLoad } from '../../lib/hooks.ts'
 import type { Settings } from '../../types.ts'
+import { T, useLocale } from '../../lib/i18n.tsx'
 
 const FIELDS: [string, string, string][] = [
   ['orgName', 'Nombre que se muestra en la aplicación', 'Aparece arriba y en la página del enlace personal.'],
@@ -12,37 +13,38 @@ const FIELDS: [string, string, string][] = [
 ]
 
 export function General() {
+  const { t } = useLocale()
   const s = useLoad(() => api<Settings>('settings.get'), 'settings')
-  if (s.error) return <p className="alert">{s.error}</p>
-  if (!s.data) return <p className="muted">Cargando…</p>
-  return <GeneralForm initial={s.data} />
+  if (s.error) return <p className="alert"><T>{s.error}</T></p>
+  if (!s.data) return <p className="muted"><T>Cargando…</T></p>
+  return <GeneralForm initial={s.data} t={t} />
 }
 
-function GeneralForm({ initial }: { initial: Settings }) {
+function GeneralForm({ initial, t }: { initial: Settings; t: (key: string) => string }) {
   const [f, setF] = useState<Settings>(initial)
   const [reminders, setReminders] = useState(initial.recordatoriosHabilitados === '1')
   const action = useAction()
   return (
     <form className="stack" onSubmit={(e) => { e.preventDefault(); action.run(async () => { setF(await api<Settings>('settings.save', f)); return 'Guardado' }) }}>
-      <h1>General</h1>
+      <h1><T>General</T></h1>
       {FIELDS.map(([k, l, h]) => (
-        <label key={k} className="stack"><span>{l}</span><input value={f[k] ?? ''} dir={k === 'appUrl' ? 'ltr' : undefined} onChange={(e) => setF({ ...f, [k]: e.target.value })} /><span className="help">{h}</span></label>
+        <label key={k} className="stack"><span><T>{l}</T></span><input value={f[k] ?? ''} dir={k === 'appUrl' ? 'ltr' : undefined} onChange={(e) => setF({ ...f, [k]: e.target.value })} /><span className="help"><T>{h}</T></span></label>
       ))}
-      <label className="stack"><span>Mensaje que acompaña al enlace personal</span><textarea value={f.invitacionMensaje ?? ''} maxLength={500} onChange={(e) => setF({ ...f, invitacionMensaje: e.target.value })} /><span className="help">El enlace se agrega al final.</span></label>
-      <label className="check"><input type="checkbox" checked={f.enlaceDocumentos === '1'} onChange={(e) => setF({ ...f, enlaceDocumentos: e.target.checked ? '1' : '' })} /><span>Permitir que la persona suba foto del DNI o pasaporte desde el enlace</span></label>
+      <label className="stack"><span><T>Mensaje que acompaña al enlace personal</T></span><textarea value={f.invitacionMensaje ?? ''} maxLength={500} onChange={(e) => setF({ ...f, invitacionMensaje: e.target.value })} /><span className="help"><T>El enlace se agrega al final.</T></span></label>
+      <label className="check"><input type="checkbox" checked={f.enlaceDocumentos === '1'} onChange={(e) => setF({ ...f, enlaceDocumentos: e.target.checked ? '1' : '' })} /><span><T>Permitir que la persona suba foto del DNI o pasaporte desde el enlace</T></span></label>
       <section className="card stack">
-        <h2>Recordatorios por correo</h2>
-        <p className="help">Un correo diario a cada sheij activo contiene solo el número de pasos vencidos y el enlace de la aplicación. Se respeta la cuota diaria de correo disponible.</p>
+        <h2><T>Recordatorios por correo</T></h2>
+        <p className="help"><T>Un correo diario a cada sheij activo contiene solo el número de pasos vencidos y el enlace de la aplicación. Se respeta la cuota diaria de correo disponible.</T></p>
         <label className="check"><input type="checkbox" checked={reminders} disabled={action.busy} onChange={(e) => action.run(async () => {
           const enabled = e.target.checked
           const result = await api<{ enabled: boolean }>('recordatorios.configure', { enabled })
           setReminders(result.enabled)
-          return result.enabled ? 'Recordatorios activados' : 'Recordatorios desactivados'
-        })} /><span>Enviar recordatorios diarios</span></label>
+          return t(result.enabled ? 'Recordatorios activados' : 'Recordatorios desactivados')
+        })} /><span><T>Enviar recordatorios diarios</T></span></label>
       </section>
-      {action.error && <p className="alert">{action.error}</p>}
-      {action.done && <p className="ok">{action.done}</p>}
-      <button className="primary" disabled={action.busy}>Guardar</button>
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
+      {action.done && <p className="ok"><T>{action.done}</T></p>}
+      <button className="primary" disabled={action.busy}><T>Guardar</T></button>
     </form>
   )
 }

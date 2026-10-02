@@ -1,5 +1,6 @@
 import { NavIcon, type NavIconName } from './NavIcon.tsx'
 import type { Role } from '../types.ts'
+import { T, useLocale } from '../lib/i18n.tsx'
 
 export type Tab = 'home' | 'conversos' | 'nuevo' | 'enlaces' | 'ajustes' | 'perfil' | 'pendientes'
 
@@ -23,13 +24,14 @@ const TABS: Record<'supervisor' | 'maestro', { id: Tab; icon: NavIconName; label
 }
 
 export function BottomNav({ role, active, onGo }: { role: Role; active: Tab | null; onGo: (t: Tab) => void }) {
+  const { t } = useLocale()
   if (role === 'colaborador') return null
   return (
-    <nav className="tabs" aria-label="Navegación">
+    <nav className="tabs" aria-label={t('Navegación')}>
       {TABS[role].map((t) => (
         <button key={t.id} className={active === t.id ? 'on' : ''} onClick={() => onGo(t.id)} aria-current={active === t.id ? 'page' : undefined}>
           <NavIcon name={t.icon} />
-          <span>{t.label}</span>
+          <span><T>{t.label}</T></span>
         </button>
       ))}
     </nav>

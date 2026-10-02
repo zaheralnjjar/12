@@ -20,6 +20,7 @@ import { PublicRegistro } from './screens/PublicRegistro.tsx'
 import { PublicVerify } from './screens/PublicVerify.tsx'
 import { RegistroScreen } from './screens/RegistroScreen.tsx'
 import type { Catalogo, MaestroRef, Me } from './types.ts'
+import { LanguageSwitcher, LocaleProvider, T, useLocale } from './lib/i18n.tsx'
 
 type View =
   | { name: 'home' }
@@ -34,6 +35,10 @@ type View =
   | { name: 'pendientes' }
 
 export default function App() {
+  return <LocaleProvider><AppContent /></LocaleProvider>
+}
+
+function AppContent() {
   const verification = verificationRequest()
   if (verification) return <PublicVerify token={verification.token} />
   const token = invitationToken()
@@ -42,6 +47,7 @@ export default function App() {
 }
 
 function SignedIn() {
+  const { t } = useLocale()
   const [me, setMe] = useState<Me | null>(null)
   const [loading, setLoading] = useState(!!getToken())
   const [notice, setNotice] = useState('')
@@ -110,10 +116,10 @@ function SignedIn() {
     show({ name: 'ajustes', seccion: 'maestros' })
   }
 
-  if (loading) return <p className="muted center splash">Cargando…</p>
+  if (loading) return <p className="muted center splash"><T>Cargando…</T></p>
   if (!me) return <Login onToken={onToken} notice={notice} />
-  if (catalogo.error) return <main className="stack"><p className="alert">{catalogo.error}</p><button onClick={catalogo.reload}>Reintentar</button><button className="ghost" onClick={logout}>Salir</button></main>
-  if (!catalogo.data || !role) return <p className="muted center splash">Cargando…</p>
+  if (catalogo.error) return <main className="stack"><p className="alert"><T>{catalogo.error}</T></p><button onClick={catalogo.reload}><T>Reintentar</T></button><button className="ghost" onClick={logout}><T>Salir</T></button></main>
+  if (!catalogo.data || !role) return <p className="muted center splash"><T>Cargando…</T></p>
   const cat = catalogo.data
 
   const goTab = (t: Tab) => {
@@ -178,17 +184,18 @@ function SignedIn() {
     <div className="app">
       {preview && (
         <div className="card note row between" style={{ borderRadius: 0 }}>
-          <span>Vista previa: ves la aplicación como <strong>{preview.nombre}</strong>. Solo lectura.</span>
-          <button className="primary small" onClick={stopPreview}>Terminar vista previa</button>
+          <span><T>Vista previa: ves la aplicación como </T><strong>{preview.nombre}</strong><T>. Solo lectura.</T></span>
+          <button className="primary small" onClick={stopPreview}><T>Terminar vista previa</T></button>
         </div>
       )}
       <header className="topbar">
         {staff && view.name !== 'home' ? (
-          <button className="ghost" onClick={() => goBack(() => show({ name: 'home' }))} aria-label="Volver">← Volver</button>
+          <button className="ghost" onClick={() => goBack(() => show({ name: 'home' }))} aria-label={t('Volver')}><T>← Volver</T></button>
         ) : (
-          <span className="brand">{me.org || 'Nuevo Musulmán'}</span>
+          <span className="brand">{me.org || t('Nuevo Musulmán')}</span>
         )}
-        <button className="ghost" onClick={logout}>Salir</button>
+        <LanguageSwitcher />
+        <button className="ghost" onClick={logout}><T>Salir</T></button>
       </header>
       <main>{body}</main>
       {staff && <BottomNav role={role} active={tab} onGo={goTab} />}

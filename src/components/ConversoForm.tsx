@@ -4,13 +4,16 @@ import type { CampoPublico, ExtraValue, MaestroRef } from '../types.ts'
 import { DIA_LABEL, PAISES, SECCIONES, SECCION_LABEL, SEXO_LABEL } from '../lib/labels.ts'
 
 import type { FormValues } from '../lib/formValues.ts'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/i18n.tsx'
 
 export type Lists = { nacionalidades: string[]; maestros: MaestroRef[] }
 
 function Label({ campo }: { campo: CampoPublico }) {
+  const { t } = useLocale()
   return (
     <span>
-      {campo.etiqueta} {campo.requerido && <span className="req" aria-label="obligatorio">*</span>}
+      {campo.custom ? campo.etiqueta : <T>{campo.etiqueta}</T>} {campo.requerido && <span className="req" aria-label={t('obligatorio')}><T>*</T></span>}
     </span>
   )
 }
@@ -30,6 +33,7 @@ function FieldInput({
   setData: (key: string, v: string) => void
   lists: Lists
 }) {
+  const { t } = useLocale()
   const text = typeof value === 'string' ? value : ''
   const help = campo.ayuda ? <span className="help pre">{campo.ayuda}</span> : null
   const req = campo.requerido
@@ -72,8 +76,8 @@ function FieldInput({
           <Label campo={campo} />
           {help}
           <select value={text} onChange={(e) => onChange(e.target.value)} required={req}>
-            <option value="">—</option>
-            {Object.entries(SEXO_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            <option value=""><T>—</T></option>
+            {Object.entries(SEXO_LABEL).map(([k, l]) => <option key={k} value={k}><T>{l}</T></option>)}
           </select>
         </label>
       )
@@ -83,7 +87,7 @@ function FieldInput({
         <label className="stack">
           <Label campo={campo} />
           <select value={text} onChange={(e) => onChange(e.target.value)} required={req}>
-            <option value="">—</option>
+            <option value=""><T>—</T></option>
             {opts.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </label>
@@ -94,10 +98,10 @@ function FieldInput({
         <label className="stack">
           <Label campo={campo} />
           <select value={text} onChange={(e) => onChange(e.target.value)} required={req}>
-            <option value="">—</option>
-            <option value="DNI">DNI</option>
-            <option value="Pasaporte">Pasaporte</option>
-            <option value="Otro">Otro</option>
+            <option value=""><T>—</T></option>
+            <option value="DNI"><T>DNI</T></option>
+            <option value="Pasaporte"><T>Pasaporte</T></option>
+            <option value="Otro"><T>Otro</T></option>
           </select>
         </label>
       )
@@ -107,7 +111,7 @@ function FieldInput({
         <label className="stack">
           <Label campo={campo} />
           <select value={text} onChange={(e) => onChange(e.target.value)} required={req}>
-            <option value="">—</option>
+            <option value=""><T>—</T></option>
             {active.map((m) => <option key={m.id} value={m.id}>{m.nombre}{m.active ? '' : ' (inactivo)'}</option>)}
           </select>
         </label>
@@ -118,12 +122,12 @@ function FieldInput({
         <label className="stack">
           <Label campo={campo} />
           <div className="phone">
-            <select aria-label="Código de país" value={values.data.codigoPais || '54'} onChange={(e) => setData('codigoPais', e.target.value)}>
-              {PAISES.map((p) => <option key={p.cc} value={p.cc}>{p.nombre} +{p.cc}</option>)}
+            <select aria-label={t('Código de país')} value={values.data.codigoPais || '54'} onChange={(e) => setData('codigoPais', e.target.value)}>
+              {PAISES.map((p) => <option key={p.cc} value={p.cc}><T>{p.nombre}</T> +{p.cc}</option>)}
             </select>
             <input type="tel" inputMode="tel" dir="ltr" value={text} onChange={(e) => onChange(e.target.value)} required={req} placeholder="11 2345 6789" autoComplete="tel" />
           </div>
-          <span className="help">Si el número no es de Argentina, elegí el país. También podés escribirlo completo con «+».</span>
+          <span className="help"><T>Si el número no es de Argentina, elegí el país. También podés escribirlo completo con «+».</T></span>
         </label>
       )
     case 'dias': {
@@ -133,7 +137,7 @@ function FieldInput({
         <div className="stack tight">
           <Label campo={campo} />
           {help}
-          {!known && <span className="help">Respuesta anterior: «{text}». Elegí los días para reemplazarla.</span>}
+          {!known && <span className="help"><T>Respuesta anterior: «</T>{text}<T>». Elegí los días para reemplazarla.</T></span>}
           <div className="chips">
             {Object.entries(DIA_LABEL).map(([k, l]) => {
               const on = known && sel.includes(k)
@@ -144,7 +148,7 @@ function FieldInput({
                     const next = on ? base.filter((d) => d !== k) : [...base, k]
                     onChange(Object.keys(DIA_LABEL).filter((d) => next.includes(d)).join(','))
                   }}>
-                  {l}
+                  <T>{l}</T>
                 </button>
               )
             })}
@@ -168,7 +172,7 @@ function FieldInput({
           <Label campo={campo} />
           {help}
           <select value={text} onChange={(e) => onChange(e.target.value)} required={req}>
-            <option value="">—</option>
+            <option value=""><T>—</T></option>
             {campo.opciones.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </label>
@@ -222,7 +226,7 @@ export function ConversoForm({
         if (!here.length) return null
         return (
           <fieldset key={sec}>
-            <legend>{SECCION_LABEL[sec]}</legend>
+            <legend><T>{SECCION_LABEL[sec]}</T></legend>
             {here.map((c) => (
               <FieldInput
                 key={c.key}
