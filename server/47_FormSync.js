@@ -378,7 +378,7 @@ registerAction_('formSync.updateChoices', {
     var form;
     try { form = FormApp.openByUrl(url); } catch (e) { fail_('BAD_INPUT', 'No se pudo abrir el formulario vinculado'); }
     var choices = {
-      nacionalidad: nacionalidadNames_(false),
+      nacionalidad: nacionalidadNames_(true),
       maestro: rows_('Maestros').filter(function (m) { return m.active === '1'; }).map(function (m) { return m.nombre; }),
     };
     var updated = { nacionalidad: 0, maestro: 0 };
@@ -386,7 +386,7 @@ registerAction_('formSync.updateChoices', {
       var key = looseKey_(item.getTitle());
       var target = key.indexOf('nacionalidad') >= 0 ? 'nacionalidad' :
         (key.indexOf('sheij') >= 0 || key.indexOf('sheikh') >= 0 || key.indexOf('sheik') >= 0 || key.indexOf('jeque') >= 0 || key.indexOf('maestro') >= 0 ? 'maestro' : '');
-      if (!target) return;
+      if (!target || !choices[target].length) return;
       item.asListItem().setChoiceValues(choices[target]);
       updated[target]++;
     });

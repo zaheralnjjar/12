@@ -38,7 +38,8 @@ export function certificadoArTexto(c: CertificadoCompleto): string[] {
   const doc = d.numeroDocumento ? `، حامل${feminine ? 'ة' : ''} الوثيقة ${d.tipoDocumento || 'الهوية'} رقم ${d.numeroDocumento}` : ''
   const nationality = d.nacionalidad ? `، ${d.nacionalidad}` : ''
   const place = d.lugarShahada ? `، في ${d.lugarShahada}` : ''
-  const issuer = d.emisorTexto
+  const titled = /^(sheij|sheikh|sheik|shaij|jeque|الشيخ)\s/i.test((d.emisorTexto || '').trim())
+  const issuer = c.emisor === 'maestro' && d.emisorTexto && !titled ? `الشيخ ${d.emisorTexto}` : d.emisorTexto
   const lines = [
     'شهادة إشهار إسلام',
     `رقم: ${c.numero}`,
@@ -86,7 +87,9 @@ async function drawVerificationQr(pdf: PDFDocument, page: PDFPage, verificationU
   page.drawText('Verificar', { x: x + 8, y: y - 10, size: 6, font: labelFont, color: GREEN })
 }
 
-export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: (lines: string[]) => Promise<Uint8Array>): Promise<Uint8Array> {
+type ArabicRenderer = (lines: string[], options?: { centeredLines?: number; center?: boolean; width?: number; fontSize?: number; lineHeight?: number }) => Promise<Uint8Array>
+
+export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: ArabicRenderer): Promise<Uint8Array> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(`Certificado ${c.numero}`)
   pdf.setLanguage('es')
@@ -144,9 +147,28 @@ export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: (lin
     const arabicPage = pdf.addPage([595.28, 841.89])
     arabicPage.drawRectangle({ x: 28, y: 28, width: W - 56, height: H - 56, borderColor: GREEN, borderWidth: 3 })
     arabicPage.drawRectangle({ x: 36, y: 36, width: W - 72, height: H - 72, borderColor: GOLD, borderWidth: 1 })
-    const png = await pdf.embedPng(await drawArabic(certificadoArTexto(c)))
-    const scale = Math.min((W - 115) / png.width, (H - 150) / png.height)
-    arabicPage.drawImage(png, { x: (W - png.width * scale) / 2, y: (H - png.height * scale) / 2, width: png.width * scale, height: png.height * scale })
+    // the same layout as the Spanish page: heading and text from the top, signature line at the same height
+    const lines = certificadoArTexto(c)
+    const issuer = lines[lines.length - 1]
+    const body = c.datos.emisorTexto ? lines.slice(0, -1) : lines
+    const png = await pdf.embedPng(await drawArabic(body, { centeredLines: 2 }))
+    const scale = Math.min((W - 115) / png.width, (H - 100 - (sigY + 90)) / png.height)
+    const top = H - 70
+    arabicPage.drawImage(png, { x: (W - png.width * scale) / 2, y: top - png.height * scale, width: png.width * scale, height: png.height * scale })
+    if (c.firma) {
+      try {
+        const sig = await pdf.embedPng(c.firma)
+        const sScale = Math.min(180 / sig.width, 70 / sig.height, 1)
+        arabicPage.drawImage(sig, { x: (W - sig.width * sScale) / 2, y: sigY + 8, width: sig.width * sScale, height: sig.height * sScale })
+      } catch { /* left blank to sign by hand */ }
+    }
+    arabicPage.drawLine({ start: { x: W / 2 - 110, y: sigY }, end: { x: W / 2 + 110, y: sigY }, thickness: 0.8, color: INK })
+    if (c.datos.emisorTexto) {
+      const cap = await pdf.embedPng(await drawArabic([issuer], { center: true, width: 900, fontSize: 40, lineHeight: 60 }))
+      // the canvas keeps a transparent margin of 70px around the text: shift it so the text sits right under the line
+      const cScale = 300 / cap.width
+      arabicPage.drawImage(cap, { x: (W - cap.width * cScale) / 2, y: sigY - 6 - (cap.height - 70) * cScale, width: cap.width * cScale, height: cap.height * cScale })
+    }
     if (c.estado === 'anulado') {
       arabicPage.drawText('ANULADO', { x: 180, y: 350, size: 62, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
     }

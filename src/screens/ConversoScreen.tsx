@@ -22,6 +22,8 @@ const downloadFicha = async (detalle: ConversoDetalle, campos: Campo[]) => (awai
 
 function valueText(c: Campo, conv: Converso): string {
   const raw: ExtraValue | undefined = c.custom ? conv.extra[c.key] : conv[c.key]
+  // a withdrawn or never given consent must stay visible, not vanish from the record
+  if (c.key === 'consentimientoContacto' && !raw) return 'No'
   if (raw === undefined || raw === null || raw === '') return ''
   if (Array.isArray(raw)) return raw.join(', ')
   switch (c.tipo) {

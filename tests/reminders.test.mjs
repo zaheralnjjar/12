@@ -35,7 +35,10 @@ ok(call(SUP, 'settings.save', { appUrl: 'https://app.example.test' }))
 assert.deepEqual(ok(call(SUP, 'recordatorios.configure', { enabled: true })), { enabled: true })
 assert.equal(s.ctx.ScriptApp.getProjectTriggers().length, 1, 'enabling creates one daily trigger')
 s.ctx.MailApp._remaining = 1
-const limited = s.ctx.sendDailyReminders_()
+assert.equal(s.ctx.ScriptApp.getProjectTriggers()[0].getHandlerFunction(), 'sendDailyReminders', 'the trigger calls a public function')
+const dosOverdue = ok(call(MB, 'seguimiento.add', { conversoId: dos.id, fecha: today, resumen: 'Otra nota ficticia', proximaAccion: 'Visita', proximaFecha: due }))
+assert.ok(dosOverdue.id)
+const limited = s.ctx.sendDailyReminders()
 assert.equal(limited.sent, 1)
 assert.equal(limited.skipped, 1, 'remaining daily mail quota is respected')
 assert.equal(s.ctx.MailApp._sent.length, 1)
@@ -45,13 +48,20 @@ assert.doesNotMatch(s.ctx.MailApp._sent[0][2], /Caso ficticio|Sheij Uno|NM-/)
 
 s.ctx.MailApp._remaining = 2
 s.ctx.MailApp._sent.length = 0
-const complete = s.ctx.sendDailyReminders_()
+const complete = s.ctx.sendDailyReminders()
 assert.equal(complete.sent, 2)
 assert.equal(s.ctx.MailApp._sent[1][0], MB)
-assert.equal(s.ctx.MailApp._sent[1][2], `Pasos vencidos: 0\nhttps://app.example.test`)
+assert.equal(s.ctx.MailApp._sent[1][2], `Pasos vencidos: 1\nhttps://app.example.test`)
+// a sheikh with nothing overdue gets no mail
+ok(call(MB, 'seguimiento.add', { conversoId: dos.id, fecha: today, resumen: 'Al día', proximaAccion: 'Clase', proximaFecha: soon }))
+s.ctx.MailApp._sent.length = 0
+s.ctx.MailApp._remaining = 5
+assert.equal(s.ctx.sendDailyReminders().sent, 1)
+assert.deepEqual(s.ctx.MailApp._sent.map((m) => m[0]), [MA])
+s.ctx.MailApp._sent.length = 0
 assert.deepEqual(ok(call(SUP, 'recordatorios.configure', { enabled: false })), { enabled: false })
 assert.equal(s.ctx.ScriptApp.getProjectTriggers().length, 0, 'disabling removes the trigger')
-assert.equal(s.ctx.sendDailyReminders_().disabled, true)
-assert.equal(s.ctx.MailApp._sent.length, 2, 'disabled trigger sends no mail')
+assert.equal(s.ctx.sendDailyReminders().disabled, true)
+assert.equal(s.ctx.MailApp._sent.length, 0, 'disabled trigger sends no mail')
 
 console.log('reminders: all checks passed')
