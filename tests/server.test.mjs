@@ -111,6 +111,7 @@ denied(call(COL, 'conversos.ficha', { id: c1.id }), 'FORBIDDEN')
 denied(call(COL, 'conversos.update', { id: c1.id, data: { nombres: 'X' } }), 'FORBIDDEN')
 denied(call(COL, 'documentos.get', { id: 'd1' }), 'FORBIDDEN')
 denied(call(COL, 'resumen'), 'FORBIDDEN')
+denied(call(COL, 'estadisticas', {}), 'FORBIDDEN')
 denied(call(COL, 'export.conversos', {}), 'FORBIDDEN')
 denied(call(COL, 'invitaciones.create', {}), 'FORBIDDEN')
 denied(call(COL, 'certificados.list'), 'FORBIDDEN')
@@ -124,6 +125,10 @@ assert.equal(ok(call(SUP, 'conversos.get', { id: pedro.id })).documentos.length,
 // --- a maestro sees and changes only the records assigned to him
 assert.deepEqual(ok(call(MA, 'conversos.list', {})).map((x) => x.id), [c1.id])
 assert.deepEqual(ok(call(MB, 'conversos.list', {})).map((x) => x.id).sort(), [c2.id, pedro.id].sort())
+const statsAsMaestro = ok(call(MA, 'estadisticas', { diasSinSeguimiento: 14 }))
+assert.equal(statsAsMaestro.total, 1)
+assert.ok(statsAsMaestro.sinSeguimiento.every((row) => row.id === c1.id), 'maestro statistics never include records assigned to another maestro')
+assert.equal(statsAsMaestro.diasSinSeguimiento, 14)
 denied(call(MA, 'conversos.get', { id: c2.id }), 'NOT_FOUND') // "not yours" looks like "not found"
 denied(call(MA, 'conversos.ficha', { id: c2.id }), 'NOT_FOUND')
 denied(call(MA, 'conversos.get', { id: 'NM-2026-9999' }), 'NOT_FOUND')

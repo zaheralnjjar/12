@@ -53,6 +53,18 @@ export type ConversoResumen = {
   proximaAccion: string
 }
 
+export type Estadisticas = {
+  total: number
+  diasSinSeguimiento: number
+  fechaCorte: string
+  porMes: { key: string; nombre: string; total: number }[]
+  porAnio: { key: string; nombre: string; total: number }[]
+  porMaestro: { key: string; nombre: string; total: number }[]
+  porNacionalidad: { key: string; nombre: string; total: number }[]
+  porEstado: { key: string; nombre: string; total: number }[]
+  sinSeguimiento: { id: string; nombre: string; ultimoSeguimiento: string }[]
+}
+
 export type ExtraValue = string | string[]
 
 /** The whole record: every column of the sheet as text, plus the custom answers. */
