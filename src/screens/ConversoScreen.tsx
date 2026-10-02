@@ -8,6 +8,9 @@ import { prepareDocument } from '../lib/imageResize.ts'
 import { DOC_LABEL, ESTADO_LABEL, conSheij, ORIGEN_LABEL, SECCIONES, SECCION_LABEL, SEGUIMIENTO_LABEL, SEXO_LABEL, diasTexto, fecha, hoy } from '../lib/labels.ts'
 import { openWhatsApp, whatsappTooLong } from '../lib/whatsapp.ts'
 import type { Campo, Catalogo, CertificadoCompleto, Converso, ConversoDetalle, ExtraValue, Role } from '../types.ts'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
+import { translatedText } from '../lib/locale.ts'
 
 /** pdf-lib is loaded only when a certificate is downloaded. */
 const downloadCertificado = async (c: CertificadoCompleto) => (await import('../export/certificado.ts')).downloadCertificado(c)
@@ -20,17 +23,17 @@ const verificationUrl = (token: string) => {
 }
 const downloadFicha = async (detalle: ConversoDetalle, campos: Campo[]) => (await import('../export/ficha.ts')).downloadFicha(detalle, campos)
 
-function valueText(c: Campo, conv: Converso): string {
+function valueText(c: Campo, conv: Converso, language: 'es' | 'ar'): string {
   const raw: ExtraValue | undefined = c.custom ? conv.extra[c.key] : conv[c.key]
   // a withdrawn or never given consent must stay visible, not vanish from the record
-  if (c.key === 'consentimientoContacto' && !raw) return 'No'
+  if (c.key === 'consentimientoContacto' && !raw) return translatedText('No', language)
   if (raw === undefined || raw === null || raw === '') return ''
   if (Array.isArray(raw)) return raw.join(', ')
   switch (c.tipo) {
-    case 'sexo': return SEXO_LABEL[raw] || raw
+    case 'sexo': return translatedText(SEXO_LABEL[raw] || raw, language)
     case 'date': return fecha(raw)
-    case 'yesno': return raw === '1' ? 'Sí' + (c.key === 'consentimientoContacto' && conv.fechaConsentimiento ? ` (desde ${fecha(conv.fechaConsentimiento)})` : '') : 'No'
-    case 'dias': return diasTexto(raw)
+    case 'yesno': return translatedText(raw === '1' ? 'Sí' : 'No', language) + (raw === '1' && c.key === 'consentimientoContacto' && conv.fechaConsentimiento ? ` (${language === 'ar' ? 'منذ' : 'desde'} ${fecha(conv.fechaConsentimiento)})` : '')
+    case 'dias': return language === 'ar' ? diasTexto(raw).split(', ').map((day) => translatedText(day, language)).join('، ') : diasTexto(raw)
     case 'maestro': return conv.maestroNombre || '—'
     default: return raw
   }
@@ -59,11 +62,12 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
   readOnly: boolean
   onDeleted: () => void
 }) {
+  const { t, language } = useLocale()
   const d = useLoad(() => api<ConversoDetalle>('conversos.get', { id }), `conv-${id}`)
   const [editing, setEditing] = useState<FormValues | null>(null)
   const action = useAction()
-  if (d.error) return <p className="alert">{d.error}</p>
-  if (!d.data) return <p className="muted">Cargando…</p>
+  if (d.error) return <p className="alert"><T>{d.error}</T></p>
+  if (!d.data) return <p className="muted"><T>Cargando…</T></p>
   const { converso: c } = d.data
   const sup = role === 'supervisor'
   const campos = catalogo.campos.filter((f) => f.active)
@@ -80,12 +84,12 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
           d.reload()
         })
       }}>
-        <h1>Editar · {c.nombre}</h1>
+        <h1><T>Editar · </T>{c.nombre}</h1>
         <ConversoForm campos={campos} values={editing} onChange={setEditing} lists={lists} hide={role === 'maestro' ? ['maestroId'] : []} />
-        {action.error && <p className="alert">{action.error}</p>}
+        {action.error && <p className="alert"><T>{action.error}</T></p>}
         <div className="row">
-          <button className="primary grow" disabled={action.busy}>{action.busy ? 'Guardando…' : 'Guardar cambios'}</button>
-          <button type="button" onClick={() => setEditing(null)}>Cancelar</button>
+          <button className="primary grow" disabled={action.busy}><T>{action.busy ? 'Guardando…' : 'Guardar cambios'}</T></button>
+          <button type="button" onClick={() => setEditing(null)}><T>Cancelar</T></button>
         </div>
       </form>
     )
@@ -98,19 +102,19 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
           <h1>{c.nombre}</h1>
           <span className="badge">{c.id}</span>
         </div>
-        {c.nombreIslamico && <p className="muted">Nombre islámico: {c.nombreIslamico}</p>}
+        {c.nombreIslamico && <p className="muted"><T>Nombre islámico: </T>{c.nombreIslamico}</p>}
         <div className="row">
-          <span className={c.estado === 'activo' ? 'badge good' : 'badge dim'}>{ESTADO_LABEL[c.estado]}</span>
-          <span className="badge">{c.maestroNombre ? conSheij(c.maestroNombre) : 'Sin sheij asignado'}</span>
-          <span className="badge dim">{ORIGEN_LABEL[c.origen] || c.origen} · {fecha(c.createdAt)}</span>
+          <span className={c.estado === 'activo' ? 'badge good' : 'badge dim'}><T>{ESTADO_LABEL[c.estado]}</T></span>
+          <span className="badge"><T>{c.maestroNombre ? conSheij(c.maestroNombre) : 'Sin sheij asignado'}</T></span>
+          <span className="badge dim"><T>{ORIGEN_LABEL[c.origen] || c.origen}</T> · {fecha(c.createdAt)}</span>
         </div>
       </header>
 
       {c.revisar && (
         <div className="card note stack tight">
-          <strong>A revisar</strong>
-          <span className="pre">{c.revisar.split(' · ').join('\n')}</span>
-          {sup && !readOnly && <button className="small" style={{ alignSelf: 'flex-start' }} onClick={() => action.run(async () => { await api('conversos.revisado', { id }); d.reload() })}>Marcar como revisado</button>}
+          <strong><T>A revisar</T></strong>
+          <span className="pre"><T>{c.revisar.split(' · ').join('\n')}</T></span>
+          {sup && !readOnly && <button className="small" style={{ alignSelf: 'flex-start' }} onClick={() => action.run(async () => { await api('conversos.revisado', { id }); d.reload() })}><T>Marcar como revisado</T></button>}
         </div>
       )}
 
@@ -119,38 +123,38 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
           <button disabled={action.busy} onClick={() => action.run(async () => {
             const detalle = await api<ConversoDetalle>('conversos.ficha', { id })
             await downloadFicha(detalle, campos)
-          })}>{action.busy ? 'Preparando PDF…' : 'Descargar ficha'}</button>
-          <button onClick={() => setEditing(toValues(c))}>Editar datos</button>
-          <select aria-label="Estado" value={c.estado} style={{ width: 'auto' }} onChange={(e) => {
+          })}><T>{action.busy ? 'Preparando PDF…' : 'Descargar ficha'}</T></button>
+          <button onClick={() => setEditing(toValues(c))}><T>Editar datos</T></button>
+          <select aria-label={t('Estado')} value={c.estado} style={{ width: 'auto' }} onChange={(e) => {
             const estado = e.target.value
             action.run(async () => { await api('conversos.setEstado', { id, estado }); d.reload() })
           }}>
-            {Object.entries(ESTADO_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            {Object.entries(ESTADO_LABEL).map(([k, l]) => <option key={k} value={k}><T>{l}</T></option>)}
           </select>
           {sup && (
             <button className="danger" onClick={() => {
-              if (!window.confirm(`¿Eliminar definitivamente el registro de ${c.nombre}? Se borran sus datos, seguimientos y documentos. Esta acción no se puede deshacer.`)) return
+              if (!window.confirm(t(`¿Eliminar definitivamente el registro de ${c.nombre}? Se borran sus datos, seguimientos y documentos. Esta acción no se puede deshacer.`))) return
               action.run(async () => { await api('conversos.delete', { id, confirm: true }); onDeleted() })
-            }}>Eliminar</button>
+            }}><T>Eliminar</T></button>
           )}
         </div>
       )}
-      {action.error && <p className="alert">{action.error}</p>}
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
 
       <WhatsAppBox conv={c} />
 
       <section className="stack">
         {SECCIONES.map((sec) => {
           const here = campos.filter((f) => (f.seccion || 'otros') === sec && f.key !== 'maestroId')
-          const rows = here.map((f) => [f, valueText(f, c)] as const).filter(([, v]) => v)
+          const rows = here.map((f) => [f, valueText(f, c, language)] as const).filter(([, v]) => v)
           if (!rows.length) return null
           return (
             <div className="card stack tight" key={sec}>
-              <h2>{SECCION_LABEL[sec]}</h2>
+              <h2><T>{SECCION_LABEL[sec]}</T></h2>
               <dl className="dl">
                 {rows.map(([f, v]) => (
                   <div key={f.key} style={{ display: 'contents' }}>
-                    <dt>{f.etiqueta}</dt>
+                    <dt>{f.custom ? f.etiqueta : <T>{f.etiqueta}</T>}</dt>
                     <dd className={f.tipo === 'textarea' ? 'pre' : ''}>{v}</dd>
                   </div>
                 ))}
@@ -159,7 +163,7 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
           )
         })}
         {c.fotoFormulario && (
-          <p className="small"><a href={c.fotoFormulario} target="_blank" rel="noopener noreferrer">Ver la foto enviada por el formulario de Google</a> <span className="muted">(se abre en Drive con la cuenta dueña del formulario)</span></p>
+          <p className="small"><a href={c.fotoFormulario} target="_blank" rel="noopener noreferrer"><T>Ver la foto enviada por el formulario de Google</T></a> <span className="muted"><T>(se abre en Drive con la cuenta dueña del formulario)</T></span></p>
         )}
       </section>
 
@@ -174,24 +178,25 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
 function WhatsAppBox({ conv }: { conv: Converso }) {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState(`Assalamu alaikum ${conv.nombres || ''}, `)
-  if (!conv.whatsapp) return <p className="muted small">Sin número de WhatsApp.</p>
-  if (!open) return <button className="wa" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen(true)}>Escribir por WhatsApp</button>
+  if (!conv.whatsapp) return <p className="muted small"><T>Sin número de WhatsApp.</T></p>
+  if (!open) return <button className="wa" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen(true)}><T>Escribir por WhatsApp</T></button>
   return (
     <div className="card stack">
-      <h2>Mensaje por WhatsApp</h2>
-      {conv.consentimientoContacto !== '1' && <p className="note small">Esta persona no marcó que acepta ser contactada por WhatsApp. Asegurate de que esté de acuerdo.</p>}
-      <p className="muted small">Para: <span dir="ltr">{conv.whatsapp}</span>. Revisá el texto: se abre WhatsApp y vos lo enviás. No escribas datos sensibles.</p>
+      <h2><T>Mensaje por WhatsApp</T></h2>
+      {conv.consentimientoContacto !== '1' && <p className="note small"><T>Esta persona no marcó que acepta ser contactada por WhatsApp. Asegurate de que esté de acuerdo.</T></p>}
+      <p className="muted small"><T>Para: </T><span dir="ltr">{conv.whatsapp}</span><T>. Revisá el texto: se abre WhatsApp y vos lo enviás. No escribas datos sensibles.</T></p>
       <textarea value={text} onChange={(e) => setText(e.target.value)} />
-      {whatsappTooLong(text) && <p className="alert small">El mensaje es demasiado largo para un enlace de WhatsApp.</p>}
+      {whatsappTooLong(text) && <p className="alert small"><T>El mensaje es demasiado largo para un enlace de WhatsApp.</T></p>}
       <div className="row">
-        <button className="wa" disabled={whatsappTooLong(text)} onClick={() => openWhatsApp(conv.whatsapp, text)}>Abrir WhatsApp</button>
-        <button onClick={() => setOpen(false)}>Cerrar</button>
+        <button className="wa" disabled={whatsappTooLong(text)} onClick={() => openWhatsApp(conv.whatsapp, text)}><T>Abrir WhatsApp</T></button>
+        <button onClick={() => setOpen(false)}><T>Cerrar</T></button>
       </div>
     </div>
   )
 }
 
 function SeguimientoBox({ id, detalle, readOnly, onChange }: { id: string; detalle: ConversoDetalle; readOnly: boolean; onChange: () => void }) {
+  const { t } = useLocale()
   const empty = { fecha: hoy(), tipo: 'llamada', resumen: '', proximaAccion: '', proximaFecha: '' }
   const [f, setF] = useState(empty)
   const [open, setOpen] = useState(false)
@@ -199,8 +204,8 @@ function SeguimientoBox({ id, detalle, readOnly, onChange }: { id: string; detal
   return (
     <section className="card stack">
       <div className="section-title">
-        <h2>Seguimiento</h2>
-        {!readOnly && !open && <button className="small primary" onClick={() => setOpen(true)}>+ Agregar</button>}
+        <h2><T>Seguimiento</T></h2>
+        {!readOnly && !open && <button className="small primary" onClick={() => setOpen(true)}><T>+ Agregar</T></button>}
       </div>
       {open && (
         <form className="stack" onSubmit={(e) => {
@@ -208,33 +213,33 @@ function SeguimientoBox({ id, detalle, readOnly, onChange }: { id: string; detal
           action.run(async () => { await api('seguimiento.add', { conversoId: id, ...f }); setF(empty); setOpen(false); onChange() })
         }}>
           <div className="two">
-            <label className="stack"><span>Fecha</span><input type="date" value={f.fecha} max={hoy()} onChange={(e) => setF({ ...f, fecha: e.target.value })} /></label>
-            <label className="stack"><span>Tipo</span>
+            <label className="stack"><span><T>Fecha</T></span><input type="date" value={f.fecha} max={hoy()} onChange={(e) => setF({ ...f, fecha: e.target.value })} /></label>
+            <label className="stack"><span><T>Tipo</T></span>
               <select value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })}>
-                {Object.entries(SEGUIMIENTO_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                {Object.entries(SEGUIMIENTO_LABEL).map(([k, l]) => <option key={k} value={k}><T>{l}</T></option>)}
               </select>
             </label>
           </div>
-          <label className="stack"><span>Resumen <span className="req">*</span></span><textarea required value={f.resumen} onChange={(e) => setF({ ...f, resumen: e.target.value })} maxLength={3000} /></label>
+          <label className="stack"><span><T>Resumen </T><span className="req"><T>*</T></span></span><textarea required value={f.resumen} onChange={(e) => setF({ ...f, resumen: e.target.value })} maxLength={3000} /></label>
           <div className="two">
-            <label className="stack"><span>Próximo paso</span><input value={f.proximaAccion} onChange={(e) => setF({ ...f, proximaAccion: e.target.value })} maxLength={300} /></label>
-            <label className="stack"><span>Fecha del próximo paso</span><input type="date" value={f.proximaFecha} onChange={(e) => setF({ ...f, proximaFecha: e.target.value })} /></label>
+            <label className="stack"><span><T>Próximo paso</T></span><input value={f.proximaAccion} onChange={(e) => setF({ ...f, proximaAccion: e.target.value })} maxLength={300} /></label>
+            <label className="stack"><span><T>Fecha del próximo paso</T></span><input type="date" value={f.proximaFecha} onChange={(e) => setF({ ...f, proximaFecha: e.target.value })} /></label>
           </div>
-          <p className="help">Las notas de seguimiento son internas: la persona no las ve.</p>
-          {action.error && <p className="alert">{action.error}</p>}
-          <div className="row"><button className="primary" disabled={action.busy}>Guardar</button><button type="button" onClick={() => setOpen(false)}>Cancelar</button></div>
+          <p className="help"><T>Las notas de seguimiento son internas: la persona no las ve.</T></p>
+          {action.error && <p className="alert"><T>{action.error}</T></p>}
+          <div className="row"><button className="primary" disabled={action.busy}><T>Guardar</T></button><button type="button" onClick={() => setOpen(false)}><T>Cancelar</T></button></div>
         </form>
       )}
-      {detalle.seguimiento.length === 0 ? <p className="muted">Todavía no hay seguimientos.</p> : (
+      {detalle.seguimiento.length === 0 ? <p className="muted"><T>Todavía no hay seguimientos.</T></p> : (
         <ul className="timeline">
           {detalle.seguimiento.map((s) => (
             <li key={s.id} className="stack tight">
               <div className="row between">
-                <strong>{fecha(s.fecha)} · {SEGUIMIENTO_LABEL[s.tipo] || s.tipo}</strong>
-                {!readOnly && <button className="ghost small" onClick={() => { if (window.confirm('¿Borrar esta nota?')) action.run(async () => { await api('seguimiento.delete', { id: s.id }); onChange() }) }}>Borrar</button>}
+                <strong>{fecha(s.fecha)} · <T>{SEGUIMIENTO_LABEL[s.tipo] || s.tipo}</T></strong>
+                {!readOnly && <button className="ghost small" onClick={() => { if (window.confirm(t('¿Borrar esta nota?'))) action.run(async () => { await api('seguimiento.delete', { id: s.id }); onChange() }) }}><T>Borrar</T></button>}
               </div>
               <span className="pre">{s.resumen}</span>
-              {(s.proximaAccion || s.proximaFecha) && <span className="small">Próximo paso: {s.proximaAccion} {s.proximaFecha && `(${fecha(s.proximaFecha)})`}</span>}
+              {(s.proximaAccion || s.proximaFecha) && <span className="small"><T>Próximo paso: </T>{s.proximaAccion} {s.proximaFecha && `(${fecha(s.proximaFecha)})`}</span>}
               <span className="muted small" dir="ltr" style={{ textAlign: 'start' }}>{s.autor}</span>
             </li>
           ))}
@@ -251,7 +256,7 @@ function ProgresoBox({ id, detalle, catalogo, readOnly, onChange }: { id: string
   if (!etapas.length) return null
   return (
     <section className="card stack">
-      <h2>Aprendizaje · {done.size} de {etapas.length}</h2>
+      <h2><T>Aprendizaje · </T>{done.size} <T> <T> de </T></T>{etapas.length}</h2>
       {etapas.map((e) => (
         <div key={e.id} className="stack tight">
           <label className="check">
@@ -259,17 +264,18 @@ function ProgresoBox({ id, detalle, catalogo, readOnly, onChange }: { id: string
               const hecho = ev.target.checked
               action.run(async () => { await api('progreso.set', { conversoId: id, etapaId: e.id, hecho }); onChange() })
             }} />
-            <span>{e.nombre}{done.get(e.id) ? <span className="muted small"> · {fecha(done.get(e.id) || '')}</span> : null}</span>
+            <span>{e.nombre}{done.get(e.id) ? <span className="muted small"> <T> <T> · </T></T>{fecha(done.get(e.id) || '')}</span> : null}</span>
           </label>
           {e.descripcion && <span className="help pre" style={{ paddingInlineStart: 30 }}>{e.descripcion}</span>}
         </div>
       ))}
-      {action.error && <p className="alert">{action.error}</p>}
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
     </section>
   )
 }
 
 function DocumentosBox({ id, detalle, readOnly, onChange }: { id: string; detalle: ConversoDetalle; readOnly: boolean; onChange: () => void }) {
+  const { t } = useLocale()
   const [tipo, setTipo] = useState('dni_frente')
   const [shown, setShown] = useState<{ id: string; dataUrl: string; mime: string } | null>(null)
   const action = useAction()
@@ -282,16 +288,16 @@ function DocumentosBox({ id, detalle, readOnly, onChange }: { id: string; detall
   })
   return (
     <section className="card stack">
-      <h2>Documentos</h2>
-      <p className="help">Privados. Cada vez que alguien abre un documento queda registrado.</p>
-      {detalle.documentos.length === 0 ? <p className="muted">No hay documentos.</p> : (
+      <h2><T>Documentos</T></h2>
+      <p className="help"><T>Privados. Cada vez que alguien abre un documento queda registrado.</T></p>
+      {detalle.documentos.length === 0 ? <p className="muted"><T>No hay documentos.</T></p> : (
         <ul className="list">
           {detalle.documentos.map((doc) => (
             <li key={doc.id} className="row between">
-              <span>{DOC_LABEL[doc.tipo] || doc.tipo} <span className="muted small">· {fecha(doc.uploadedAt)}</span></span>
+              <span><T>{DOC_LABEL[doc.tipo] || doc.tipo}</T> · <span className="muted small">{fecha(doc.uploadedAt)}</span></span>
               <span className="row">
-                <button className="small" onClick={() => view(doc.id)}>Ver</button>
-                {!readOnly && <button className="small danger" onClick={() => { if (window.confirm('¿Quitar este documento?')) action.run(async () => { await api('documentos.remove', { id: doc.id }); setShown(null); onChange() }) }}>Quitar</button>}
+                <button className="small" onClick={() => view(doc.id)}><T>Ver</T></button>
+                {!readOnly && <button className="small danger" onClick={() => { if (window.confirm(t('¿Quitar este documento?'))) action.run(async () => { await api('documentos.remove', { id: doc.id }); setShown(null); onChange() }) }}><T>Quitar</T></button>}
               </span>
             </li>
           ))}
@@ -299,17 +305,17 @@ function DocumentosBox({ id, detalle, readOnly, onChange }: { id: string; detall
       )}
       {shown && (
         <figure className="stack tight" style={{ margin: 0 }}>
-          <img className="docthumb" src={shown.dataUrl} alt="Documento" />
-          <button className="small" style={{ alignSelf: 'flex-start' }} onClick={() => setShown(null)}>Cerrar</button>
+          <img className="docthumb" src={shown.dataUrl} alt={t('Documento')} />
+          <button className="small" style={{ alignSelf: 'flex-start' }} onClick={() => setShown(null)}><T>Cerrar</T></button>
         </figure>
       )}
       {!readOnly && (
         <div className="row">
-          <select aria-label="Tipo de documento" value={tipo} onChange={(e) => setTipo(e.target.value)} style={{ width: 'auto' }}>
-            {Object.entries(DOC_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          <select aria-label={t('Tipo de documento')} value={tipo} onChange={(e) => setTipo(e.target.value)} style={{ width: 'auto' }}>
+            {Object.entries(DOC_LABEL).map(([k, l]) => <option key={k} value={k}><T>{l}</T></option>)}
           </select>
           <label className="button">
-            {action.busy ? 'Subiendo…' : 'Subir documento'}
+            <T>{action.busy ? 'Subiendo…' : 'Subir documento'}</T>
             <input type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf" disabled={action.busy} onChange={(e) => {
               const file = e.target.files?.[0]
               e.target.value = ''
@@ -323,12 +329,13 @@ function DocumentosBox({ id, detalle, readOnly, onChange }: { id: string; detall
           </label>
         </div>
       )}
-      {action.error && <p className="alert">{action.error}</p>}
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
     </section>
   )
 }
 
 function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; detalle: ConversoDetalle; readOnly: boolean; onChange: () => void }) {
+  const { t } = useLocale()
   const [emisor, setEmisor] = useState<'maestro' | 'centro'>(detalle.converso.maestroId ? 'maestro' : 'centro')
   const [idioma, setIdioma] = useState<'es' | 'es_ar'>('es')
   const action = useAction()
@@ -339,24 +346,24 @@ function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; deta
   })
   return (
     <section className="card stack">
-      <h2>Certificado de conversión al Islam</h2>
-      {!detalle.converso.fechaShahada && <p className="note small">Para emitir el certificado, primero cargá la fecha de la shahada en los datos.</p>}
+      <h2><T>Certificado de conversión al Islam</T></h2>
+      {!detalle.converso.fechaShahada && <p className="note small"><T>Para emitir el certificado, primero cargá la fecha de la shahada en los datos.</T></p>}
       {detalle.certificados.length > 0 && (
         <ul className="list">
           {detalle.certificados.map((x) => (
             <li key={x.id} className="row between">
               <span className="stack tight">
-                <strong>{x.numero} <span className={x.estado === 'valido' ? 'badge good' : 'badge bad'}>{x.estado === 'valido' ? 'Válido' : 'Anulado'}</span></strong>
-                <span className="muted small">{fecha(x.fecha)} · {x.emisor === 'maestro' ? conSheij(x.maestroNombre) : 'Centro'} · {x.idioma === 'es' ? 'Español' : 'Español y árabe'}</span>
-                {x.anuladoMotivo && <span className="small">Motivo: {x.anuladoMotivo}</span>}
+                <strong>{x.numero} <span className={x.estado === 'valido' ? 'badge good' : 'badge bad'}><T>{x.estado === 'valido' ? 'Válido' : 'Anulado'}</T></span></strong>
+                <span className="muted small">{fecha(x.fecha)} <T> · </T><T>{x.emisor === 'maestro' ? conSheij(x.maestroNombre) : 'Centro'}</T> <T> · </T><T>{x.idioma === 'es' ? 'Español' : 'Español y árabe'}</T></span>
+                {x.anuladoMotivo && <span className="small"><T>Motivo: </T>{x.anuladoMotivo}</span>}
               </span>
               <span className="row">
-                <button className="small" disabled={readOnly} onClick={() => download(x.id)}>Descargar PDF</button>
+                <button className="small" disabled={readOnly} onClick={() => download(x.id)}><T>Descargar PDF</T></button>
                 {!readOnly && x.estado === 'valido' && (
                   <button className="small danger" onClick={() => {
-                    const motivo = window.prompt('Motivo de la anulación')
+                    const motivo = window.prompt(t('Motivo de la anulación'))
                     if (motivo) action.run(async () => { await api('certificados.annul', { id: x.id, motivo }); onChange() })
-                  }}>Anular</button>
+                  }}><T>Anular</T></button>
                 )}
               </span>
             </li>
@@ -365,23 +372,23 @@ function CertificadosBox({ id, detalle, readOnly, onChange }: { id: string; deta
       )}
       {!readOnly && detalle.converso.fechaShahada && (
         <div className="row">
-          <select aria-label="Emitido por" value={emisor} onChange={(e) => setEmisor(e.target.value as 'maestro' | 'centro')} style={{ width: 'auto' }}>
-            <option value="maestro" disabled={!detalle.converso.maestroId}>A nombre del sheij</option>
-            <option value="centro">A nombre del centro islámico</option>
+          <select aria-label={t('Emitido por')} value={emisor} onChange={(e) => setEmisor(e.target.value as 'maestro' | 'centro')} style={{ width: 'auto' }}>
+            <option value="maestro" disabled={!detalle.converso.maestroId}><T>A nombre del sheij</T></option>
+            <option value="centro"><T>A nombre del centro islámico</T></option>
           </select>
-          <select aria-label="Idioma" value={idioma} onChange={(e) => setIdioma(e.target.value as 'es' | 'es_ar')} style={{ width: 'auto' }}>
-            <option value="es">Español</option>
-            <option value="es_ar">Español y árabe</option>
+          <select aria-label={t('Idioma')} value={idioma} onChange={(e) => setIdioma(e.target.value as 'es' | 'es_ar')} style={{ width: 'auto' }}>
+            <option value="es"><T>Español</T></option>
+            <option value="es_ar"><T>Español y árabe</T></option>
           </select>
           <button className="primary" disabled={action.busy} onClick={() => action.run(async () => {
             const cert = await api<{ id: string; verificationToken: string }>('certificados.issue', { conversoId: id, emisor, idioma })
             onChange()
             const full = await api<CertificadoCompleto>('certificados.get', { id: cert.id })
             await downloadCertificado({ ...full, verificationUrl: verificationUrl(cert.verificationToken) })
-          })}>Emitir certificado</button>
+          })}><T>Emitir certificado</T></button>
         </div>
       )}
-      {action.error && <p className="alert">{action.error}</p>}
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
     </section>
   )
 }

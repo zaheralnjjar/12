@@ -65,14 +65,15 @@ assert.equal(catCol.etapas.length, 0)
 
 // --- registering
 const base = (extra = {}) => ({ nombres: 'Juan', apellidos: 'Pérez', sexo: 'M', nacionalidad: 'Argentina', whatsapp: '11 15 2345 6789', maestroId: ma.id, ...extra })
-const c1 = ok(call(SUP, 'conversos.create', { data: base({ tipoDocumento: 'DNI', numeroDocumento: '30.111.222', fechaShahada: '2025-05-02', consentimientoContacto: true }) }))
-assert.match(c1.id, /^NM-\d{4}-0001$/)
+const c1 = ok(call(SUP, 'conversos.create', { data: base({ tipoDocumento: 'DNI', numeroDocumento: '30.111.222', fechaNacimiento: '1990-06-15', fechaShahada: '2025-05-02', consentimientoContacto: true }) }))
+assert.match(c1.id, /^\d{12}-JP(?:-\d{2,})?$/, 'program ID has local date/time to the minute and name/surname initials')
 const full1 = ok(call(SUP, 'conversos.get', { id: c1.id })).converso
 assert.equal(full1.whatsapp, '+5491123456789')
 assert.equal(full1.numeroDocumento, '30111222')
 assert.equal(full1.consentimientoContacto, '1')
 assert.ok(full1.fechaConsentimiento)
 assert.equal(full1.maestroNombre, 'Sheij Ahmad')
+assert.equal(full1.fechaNacimiento, '1990-06-15')
 assert.equal(full1.formKey, undefined)
 const ficha1 = ok(call(SUP, 'conversos.ficha', { id: c1.id }))
 assert.equal(ficha1.converso.id, c1.id)
@@ -97,10 +98,20 @@ denied(call(SUP, 'conversos.create', { data: base(), documentos: [{ tipo: 'secre
 assert.equal(ok(call(SUP, 'conversos.list', {})).length, 1, 'refused registrations leave nothing behind')
 
 // a foreign number with its country code
-const c2 = ok(call(SUP, 'conversos.create', { data: base({ nombres: 'María', sexo: 'F', nacionalidad: 'Venezuela', codigoPais: '58', whatsapp: '0412 1234567', maestroId: mb.id, diasDisponibles: ['viernes', 'lunes'] }) }))
+const c2 = ok(call(SUP, 'conversos.create', { data: base({ nombres: 'María', sexo: 'F', fechaNacimiento: '1980-01-01', nacionalidad: 'Venezuela', codigoPais: '58', whatsapp: '0412 1234567', maestroId: mb.id, diasDisponibles: ['viernes', 'lunes'] }) }))
+assert.match(c2.id, /^\d{12}-MP(?:-\d{2,})?$/)
 const full2 = ok(call(SUP, 'conversos.get', { id: c2.id })).converso
 assert.equal(full2.whatsapp, '+584121234567')
 assert.equal(full2.diasDisponibles, 'lunes,viernes')
+assert.deepEqual(ok(call(SUP, 'conversos.list', { sexo: 'F' })).map((x) => x.id), [c2.id])
+assert.deepEqual(ok(call(SUP, 'conversos.list', { edadMin: 40 })).map((x) => x.id), [c2.id])
+assert.deepEqual(ok(call(SUP, 'conversos.list', { edadMax: 40 })).map((x) => x.id), [c1.id])
+assert.ok(ok(call(SUP, 'conversos.list', { desde: full1.createdAt.slice(0, 10), hasta: full1.createdAt.slice(0, 10) })).some((x) => x.id === c1.id))
+assert.equal(ok(call(SUP, 'conversos.list', { desde: '2099-01-01', hasta: '2100-01-01' })).length, 0)
+denied(call(SUP, 'conversos.list', { sexo: 'X' }), 'BAD_INPUT')
+denied(call(SUP, 'conversos.list', { edadMin: 130 }), 'BAD_INPUT')
+denied(call(SUP, 'conversos.list', { desde: '2026-02-30' }), 'BAD_INPUT')
+denied(call(SUP, 'conversos.list', { desde: '2026-12-01', hasta: '2026-01-01' }), 'BAD_INPUT')
 
 // the colaborador registers and gets NOTHING back about the record
 const r = ok(call(COL, 'conversos.create', { data: base({ nombres: 'Pedro', whatsapp: '11 3333 4444', maestroId: mb.id }), documentos: [{ tipo: 'dni_frente', dataUrl: JPG }] }))
@@ -262,10 +273,10 @@ const noDate = ok(call(SUP, 'conversos.create', { data: base({ nombres: 'Sin fec
 denied(call(SUP, 'certificados.issue', { conversoId: noDate.id }), 'BAD_INPUT') // needs the date of the shahada
 denied(call(MA, 'certificados.issue', { conversoId: c1.id, idioma: 'fr' }), 'BAD_INPUT')
 const cert = ok(call(MA, 'certificados.issue', { conversoId: c1.id, emisor: 'maestro', idioma: 'es' }))
-assert.match(cert.numero, /^C-\d{4}-0001$/)
+assert.equal(cert.numero, c1.id, 'the certificate number is the program ID')
 assert.match(cert.verificationToken, /^[a-f0-9]{64}$/)
 const cert2 = ok(call(SUP, 'certificados.issue', { conversoId: c1.id, emisor: 'centro', idioma: 'es_ar' }))
-assert.match(cert2.numero, /^C-\d{4}-0002$/)
+assert.equal(cert2.numero, c1.id, 'reprints retain the same program ID')
 assert.match(cert2.verificationToken, /^[a-f0-9]{64}$/)
 const certSheet = [...s.spreadsheets.values()][0].getSheetByName('Certificados')
 const certValues = certSheet.getDataRange().getValues()

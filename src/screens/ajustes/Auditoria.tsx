@@ -1,5 +1,7 @@
 import { api } from '../../api.ts'
 import { useLoad } from '../../lib/hooks.ts'
+import { T } from '../../lib/i18n.tsx'
+import { useLocale } from '../../lib/locale-context.ts'
 
 const ACCION: Record<string, string> = {
   ver_documento: 'Abrió un documento',
@@ -13,19 +15,20 @@ const ACCION: Record<string, string> = {
 }
 
 export function Auditoria() {
+  const { language } = useLocale()
   const list = useLoad(() => api<{ email: string; accion: string; objeto: string; detalle: string; createdAt: string }[]>('auditoria.list'), 'audit')
   return (
     <div className="stack">
-      <h1>Registro de actividad</h1>
-      <p className="muted small">Las últimas 300 acciones sensibles.</p>
-      {list.error && <p className="alert">{list.error}</p>}
+      <h1><T>Registro de actividad</T></h1>
+      <p className="muted small"><T>Las últimas 300 acciones sensibles.</T></p>
+      {list.error && <p className="alert"><T>{list.error}</T></p>}
       {list.data && (
         <div className="table-scroll">
           <table>
-            <thead><tr><th>Fecha</th><th>Cuenta</th><th>Acción</th><th>Registro</th><th>Detalle</th></tr></thead>
+            <thead><tr><th><T>Fecha</T></th><th><T>Cuenta</T></th><th><T>Acción</T></th><th><T>Registro</T></th><th><T>Detalle</T></th></tr></thead>
             <tbody>
               {list.data.map((a, i) => (
-                <tr key={i}><td>{new Date(a.createdAt).toLocaleString('es-AR')}</td><td dir="ltr">{a.email}</td><td>{ACCION[a.accion] ?? a.accion}</td><td>{a.objeto}</td><td>{a.detalle}</td></tr>
+                <tr key={i}><td>{new Date(a.createdAt).toLocaleString(language === 'ar' ? 'ar' : 'es-AR')}</td><td dir="ltr">{a.email}</td><td><T>{ACCION[a.accion] ?? a.accion}</T></td><td>{a.objeto}</td><td>{a.detalle}</td></tr>
               ))}
             </tbody>
           </table>

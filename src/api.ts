@@ -1,4 +1,5 @@
 // The only place that talks to the server.
+import { getLanguage, localizeError } from './lib/locale.ts'
 const API_URL = import.meta.env.VITE_API_URL as string | undefined
 const TOKEN_KEY = 'nm.token'
 
@@ -80,7 +81,7 @@ export function publicApi<T>(action: 'public.form' | 'public.submit' | 'public.v
 export function errorMessage(e: unknown): string {
   const message = e instanceof Error ? e.message : 'Ocurrió un error inesperado'
   if (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(message)) {
-    return 'La aplicación se actualizó. Volvé a cargar la página e intentá de nuevo.'
+    return localizeError('La aplicación se actualizó. Volvé a cargar la página e intentá de nuevo.', getLanguage())
   }
-  return message
+  return localizeError(message, getLanguage())
 }

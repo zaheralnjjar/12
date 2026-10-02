@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAction } from '../lib/hooks.ts'
 import { canvasToSignature, fileToSignature } from '../lib/signatureCanvas.ts'
+import { T } from '../lib/i18n.tsx'
+import { useLocale } from '../lib/locale-context.ts'
 
 const INK = '#16245f'
 
@@ -17,6 +19,7 @@ export function SignaturePad({
   onSave: (pngDataUrl: string) => Promise<void>
   allowUpload?: boolean
 }) {
+  const { t } = useLocale()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
   const inked = useRef(false) // something is drawn on the surface
@@ -128,21 +131,21 @@ export function SignaturePad({
     <div className="sigpad">
       {current && !preview && (
         <figure>
-          <figcaption className="muted">Firma guardada</figcaption>
+          <figcaption className="muted"><T>Firma guardada</T></figcaption>
           <div className="sig-preview">
-            <img src={current} alt="Firma guardada" />
+            <img src={current} alt={t('Firma guardada')} />
           </div>
         </figure>
       )}
       {preview && (
         <figure>
-          <figcaption className="muted">Así quedará la firma sin el fondo. Si está bien, tocá «Guardar».</figcaption>
+          <figcaption className="muted"><T>Así quedará la firma sin el fondo. Si está bien, tocá «Guardar».</T></figcaption>
           <div className="sig-preview">
-            <img src={preview} alt="Vista previa de la firma" />
+            <img src={preview} alt={t('Vista previa de la firma')} />
           </div>
         </figure>
       )}
-      <p className="muted">{current ? 'Para cambiarla, dibujá una nueva aquí:' : 'Dibujá tu firma con el dedo dentro del recuadro:'}</p>
+      <p className="muted"><T>{current ? 'Para cambiarla, dibujá una nueva aquí:' : 'Dibujá tu firma con el dedo dentro del recuadro:'}</T></p>
       <canvas
         ref={canvasRef}
         className="sig-canvas"
@@ -150,24 +153,28 @@ export function SignaturePad({
         onPointerMove={move}
         onPointerUp={up}
         onPointerCancel={up}
-        aria-label="Espacio para dibujar la firma"
+        aria-label={t('Espacio para dibujar la firma')}
       />
       <div className="row">
         <button className="primary" onClick={save} disabled={action.busy || (!dirty && !preview)}>
-          {action.busy ? 'Guardando…' : 'Guardar'}
+          <T>{action.busy ? 'Guardando…' : 'Guardar'}</T>
         </button>
         <button onClick={clear} disabled={action.busy || (!dirty && !preview)}>
+          <T>
+          <T>
           Borrar
-        </button>
+        </T></T></button>
         {allowUpload && (
           <label className="button">
+            <T>
+            <T>
             Subir foto de la firma
-            <input type="file" accept="image/*" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = '' }} />
+            </T></T><input type="file" accept="image/*" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = '' }} />
           </label>
         )}
       </div>
-      {action.error && <p className="alert">{action.error}</p>}
-      {action.done && <p className="ok">{action.done}</p>}
+      {action.error && <p className="alert"><T>{action.error}</T></p>}
+      {action.done && <p className="ok"><T>{action.done}</T></p>}
     </div>
   )
 }

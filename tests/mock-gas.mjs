@@ -138,6 +138,7 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
       formatDate: (date, tz, fmt) => {
         const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(date).map((p) => [p.type, p.value]))
         if (fmt === 'yyyy-MM-dd') return `${parts.year}-${parts.month}-${parts.day}`
+        if (fmt === 'ddMMyyyyHHmm') return `${parts.day}${parts.month}${parts.year}${parts.hour}${parts.minute}`
         if (fmt === 'HH:mm:ss') return `${parts.hour}:${parts.minute}:${parts.second}`
         throw new Error('unsupported date pattern ' + fmt)
       },

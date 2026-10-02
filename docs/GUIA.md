@@ -13,9 +13,11 @@ Para probar sin cuentas reales, seguí las instrucciones de desarrollo en [`READ
 El supervisor puede ver todos los registros, asignar sheij, corregir datos, revisar registros marcados, administrar catálogos y cuentas, y consultar estadísticas globales.
 
 1. En **Inicio**, consultá los próximos pasos y los recuentos.
-2. Abrí **Registros** para buscar por nombre o filtrar por estado, sheij o nacionalidad.
+2. Abrí **Registros** para buscar por nombre o filtrar por estado, sheij, nacionalidad, sexo, edad y período de registro (mes/año anterior o fechas personalizadas).
 3. Abrí una ficha para editar datos, registrar seguimiento, revisar etapas o emitir una acción disponible.
 4. Usá **Ajustes** para administrar listas, cuentas, campos y etapas.
+
+Cada registro nuevo recibe un ID con fecha y hora local hasta el minuto, seguido de las iniciales del nombre y el apellido (por ejemplo, `021020261105-JP`). Ese ID aparece también como número en sus certificados. Los registros existentes conservan sus IDs actuales.
 
 ![Inicio del supervisor con datos ficticios](screenshots/demo-supervisor.jpg)
 

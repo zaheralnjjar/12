@@ -8,6 +8,13 @@ function seguimientoView_(s) {
   };
 }
 
+/** Uses sheet order to break equal timestamps, preserving the actual last entry. */
+function isLaterSeguimiento_(candidate, current) {
+  return candidate.fecha > current.fecha ||
+    (candidate.fecha === current.fecha && (candidate.createdAt > current.createdAt ||
+      (candidate.createdAt === current.createdAt && candidate._row > current._row)));
+}
+
 registerAction_('seguimiento.add', {
   roles: STAFF,
   write: true,
@@ -70,7 +77,7 @@ registerAction_('seguimiento.pendientes', {
     var latest = {};
     rows_('Seguimiento').forEach(function (step) {
       var current = latest[step.conversoId];
-      if (!current || step.fecha > current.fecha || (step.fecha === current.fecha && step.createdAt > current.createdAt)) latest[step.conversoId] = step;
+      if (!current || isLaterSeguimiento_(step, current)) latest[step.conversoId] = step;
     });
     return readableConversos_(user).filter(function (c) {
       var step = latest[c.id];

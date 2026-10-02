@@ -87,7 +87,7 @@ assert.equal(list.length, 3)
 const byName = (q) => ok(call(SUP, 'conversos.get', { id: ok(call(SUP, 'conversos.list', { q }))[0].id })).converso
 
 const juan = byName('prueba uno')
-assert.equal(juan.id, 'NM-2023-0001', 'serial in the year of registration')
+assert.match(juan.id, /^\d{12}-JU(?:-\d{2,})?$/, 'imported full names supply the first and last-name initials')
 assert.equal(juan.nombres, 'Juan Prueba Uno')
 assert.equal(juan.whatsapp, '+5491123456789')
 assert.equal(juan.tipoDocumento, 'DNI')
@@ -125,7 +125,7 @@ assert.match(pedro.revisar, /Fecha de shahada no reconocida: «marzo 2020»/)
 sh.appendRow([t('2025-02-01T10:00:00Z'), 'Esposa Prueba', 26, 'Buenos Aires', '', 1123456789, '', '', 32999888, 'Argentina', '01/02/2025', 'Ahmad', '', ''])
 const shared = ok(call(SUP, 'formSync.run'))
 assert.equal(shared.summary.importadas, 1)
-assert.match(byName('esposa').revisar, /Posible duplicado de NM-2023-0001/)
+assert.ok(byName('esposa').revisar.includes('Posible duplicado de ' + juan.id))
 
 // running again imports nothing twice
 const again = ok(call(SUP, 'formSync.run'))
@@ -137,7 +137,7 @@ assert.equal(ok(call(SUP, 'conversos.list', {})).length, 4)
 sh.appendRow([t('2026-09-25T15:15:01Z'), 'Ali Prueba Cuatro', 19, 'Mendoza', 'martes, jueves y viernes', '261 15 555 1234', '', '', '41222333', 'Argentina', '20/09/26', 'Sheij Ahmad', '', ''])
 const third = ok(call(SUP, 'formSync.run'))
 assert.equal(third.summary.importadas, 1)
-assert.equal(byName('cuatro').id, 'NM-2026-0001')
+assert.match(byName('cuatro').id, /^\d{12}-AC(?:-\d{2,})?$/)
 assert.equal(byName('cuatro').fechaShahada, '2026-09-20')
 
 // after adding an alternative spelling, unknown sheikhs are matched again
