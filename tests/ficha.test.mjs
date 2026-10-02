@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { fichaPdf, fichaTexto } from '../src/export/ficha.ts'
+import { pdfText } from '../src/export/pdfText.ts'
+
+const textDoc = await PDFDocument.create()
+const font = await textDoc.embedFont(StandardFonts.Helvetica)
+assert.equal(pdfText('a\nb\tc', font), 'a\nb c')
 
 const detalle = {
   converso: {
@@ -34,4 +39,4 @@ const longDetalle = { ...detalle, seguimiento: Array.from({ length: 8 }, (_, i) 
 })) }
 const longPdf = await fichaPdf(longDetalle, campos)
 assert.ok((await PDFDocument.load(longPdf)).getPageCount() > 1, 'long ficha text continues onto additional pages')
-console.log('ficha: 9 checks passed')
+console.log('ficha: 10 checks passed')
