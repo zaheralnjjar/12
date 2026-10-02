@@ -6,7 +6,7 @@ Esta guía describe las tareas habituales de cada rol. Las capturas se tomaron e
 
 Ingresá con la cuenta de Google que haya habilitado el supervisor. En una instalación compatible, el navegador permite agregar la aplicación a la pantalla de inicio. La aplicación también ofrece el manifiesto con iconos PNG de 192 y 512 píxeles.
 
-Para probar sin cuentas reales, seguí [`DEPLOY.md`](DEPLOY.md) y usá el modo de prueba local con los usuarios de demostración.
+Para probar sin cuentas reales, seguí las instrucciones de desarrollo en [`README.md`](../README.md) y usá el modo de prueba local con los usuarios de demostración.
 
 ## Supervisor
 

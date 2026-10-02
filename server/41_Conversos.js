@@ -228,8 +228,17 @@ registerAction_('conversos.revisado', {
   write: true,
   fn: function (user, payload) {
     var c = conversoFor_(user, 'write', payload.id);
-    update_('Conversos', c, { revisar: '', updatedAt: nowIso_() });
-    return { id: c.id, revisar: false };
+    var revisar = '';
+    if (Object.prototype.hasOwnProperty.call(payload, 'motivos')) {
+      var current = String(c.revisar || '').split(' · ').filter(String);
+      var resolved = payload.motivos;
+      if (!Array.isArray(resolved) || !resolved.length || resolved.length > 20 || resolved.some(function (r) { return typeof r !== 'string' || current.indexOf(r) < 0; })) {
+        fail_('BAD_INPUT', 'Motivos de revisión no válidos');
+      }
+      revisar = current.filter(function (r) { return resolved.indexOf(r) < 0; }).join(' · ');
+    }
+    update_('Conversos', c, { revisar: revisar, updatedAt: nowIso_() });
+    return { id: c.id, revisar: !!revisar };
   },
 });
 
@@ -324,11 +333,17 @@ registerAction_('estadisticas', {
     function rows(map, name) {
       return Object.keys(map).map(function (key) { return { key: key, nombre: name ? name(key) : key, total: map[key] }; });
     }
+    function byKey(list) {
+      return list.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
+    }
+    function byTotal(list) {
+      return list.sort(function (a, b) { return b.total - a.total || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0); });
+    }
     return {
       total: list.length, diasSinSeguimiento: days, fechaCorte: cutoff,
-      porMes: rows(byMonth), porAnio: rows(byYear),
-      porMaestro: rows(byMaestro, function (id) { return names[id] || 'Sin sheij asignado'; }),
-      porNacionalidad: rows(byNacionalidad), porEstado: rows(byEstado), sinSeguimiento: withoutFollowUp,
+      porMes: byKey(rows(byMonth)), porAnio: byKey(rows(byYear)),
+      porMaestro: byTotal(rows(byMaestro, function (id) { return names[id] || 'Sin sheij asignado'; })),
+      porNacionalidad: byTotal(rows(byNacionalidad)), porEstado: byTotal(rows(byEstado)), sinSeguimiento: withoutFollowUp,
     };
   },
 });
