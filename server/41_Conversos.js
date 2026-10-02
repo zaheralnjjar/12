@@ -228,8 +228,17 @@ registerAction_('conversos.revisado', {
   write: true,
   fn: function (user, payload) {
     var c = conversoFor_(user, 'write', payload.id);
-    update_('Conversos', c, { revisar: '', updatedAt: nowIso_() });
-    return { id: c.id, revisar: false };
+    var revisar = '';
+    if (Object.prototype.hasOwnProperty.call(payload, 'motivos')) {
+      var current = String(c.revisar || '').split(' · ').filter(String);
+      var resolved = payload.motivos;
+      if (!Array.isArray(resolved) || !resolved.length || resolved.length > 20 || resolved.some(function (r) { return typeof r !== 'string' || current.indexOf(r) < 0; })) {
+        fail_('BAD_INPUT', 'Motivos de revisión no válidos');
+      }
+      revisar = current.filter(function (r) { return resolved.indexOf(r) < 0; }).join(' · ');
+    }
+    update_('Conversos', c, { revisar: revisar, updatedAt: nowIso_() });
+    return { id: c.id, revisar: !!revisar };
   },
 });
 
