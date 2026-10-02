@@ -10,6 +10,7 @@ const PATHS: Record<string, string> = {
   user: 'M12 12a4 4 0 100-8 4 4 0 000 8zM5 21c0-3.5 3-6 7-6s7 2.5 7 6',
   chart: 'M5 20V10M12 20V4M19 20v-7',
   settings: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19 12l2-1-1-3-2 .5-1.5-1.5.5-2-3-1-1 2h-2l-1-2-3 1 .5 2L6 8.500 4 8l-1 3 2 1v2l-2 1 1 3 2-.5L7.500 19l-.5 2 3 1 1-2h2l1 2 3-1-.5-2 1.500-1.500 2 .5 1-3-2-1z',
+  pending: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
 }
 
 export type NavIconName = keyof typeof PATHS

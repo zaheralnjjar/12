@@ -5,6 +5,7 @@ import { BottomNav, type Tab } from './components/BottomNav.tsx'
 import { signOutGoogle } from './lib/googleSignOut.ts'
 import { useLoad } from './lib/hooks.ts'
 import { invitationToken } from './lib/invitationLink.ts'
+import { verificationRequest } from './lib/verificationLink.ts'
 import { clearSteps, goBack, pushStep } from './lib/nav.ts'
 import { AjustesScreen } from './screens/AjustesScreen.tsx'
 import { ConversoScreen } from './screens/ConversoScreen.tsx'
@@ -13,8 +14,10 @@ import { EnlacesScreen } from './screens/EnlacesScreen.tsx'
 import { EstadisticasScreen } from './screens/EstadisticasScreen.tsx'
 import { HomeScreen } from './screens/HomeScreen.tsx'
 import { PerfilScreen } from './screens/PerfilScreen.tsx'
+import { PendientesScreen } from './screens/PendientesScreen.tsx'
 import { RevisionScreen } from './screens/RevisionScreen.tsx'
 import { PublicRegistro } from './screens/PublicRegistro.tsx'
+import { PublicVerify } from './screens/PublicVerify.tsx'
 import { RegistroScreen } from './screens/RegistroScreen.tsx'
 import type { Catalogo, MaestroRef, Me } from './types.ts'
 
@@ -28,8 +31,11 @@ type View =
   | { name: 'perfil' }
   | { name: 'revision' }
   | { name: 'estadisticas' }
+  | { name: 'pendientes' }
 
 export default function App() {
+  const verification = verificationRequest()
+  if (verification) return <PublicVerify token={verification.token} />
   const token = invitationToken()
   if (token) return <PublicRegistro token={token} />
   return <SignedIn />
@@ -116,6 +122,7 @@ function SignedIn() {
     else if (t === 'nuevo') setView({ name: 'nuevo' })
     else if (t === 'enlaces') setView({ name: 'enlaces' })
     else if (t === 'perfil') setView({ name: 'perfil' })
+    else if (t === 'pendientes') setView({ name: 'pendientes' })
     else setView({ name: 'home' })
   }
   const open = (id: string) => setView({ name: 'converso', id })
@@ -132,6 +139,8 @@ function SignedIn() {
     body = <RevisionScreen catalogo={cat} onOpen={open} onChanged={() => setCatKey((k) => k + 1)} />
   } else if (view.name === 'estadisticas' && staff) {
     body = <EstadisticasScreen onOpen={open} />
+  } else if (view.name === 'pendientes' && staff) {
+    body = <PendientesScreen onOpen={open} />
   } else if (view.name === 'nuevo' && !preview) {
     body = <RegistroScreen role={role} catalogo={cat} onCreated={(id) => id && show({ name: 'converso', id })} />
   } else if (view.name === 'enlaces') {
@@ -163,7 +172,7 @@ function SignedIn() {
     )
   }
 
-  const tab: Tab | null = view.name === 'converso' ? 'conversos' : view.name === 'home' || view.name === 'conversos' || view.name === 'nuevo' || view.name === 'enlaces' || view.name === 'ajustes' || view.name === 'perfil' ? view.name : null
+  const tab: Tab | null = view.name === 'converso' ? 'conversos' : view.name === 'home' || view.name === 'conversos' || view.name === 'nuevo' || view.name === 'enlaces' || view.name === 'ajustes' || view.name === 'perfil' || view.name === 'pendientes' ? view.name : null
 
   return (
     <div className="app">
