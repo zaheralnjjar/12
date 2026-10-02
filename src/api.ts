@@ -73,7 +73,7 @@ export async function api<T>(action: string, payload: Record<string, unknown> = 
 }
 
 /** The one-time registration link: no sign-in, no token of ours is ever sent. */
-export function publicApi<T>(action: 'public.form' | 'public.submit', payload: Record<string, unknown>): Promise<T> {
+export function publicApi<T>(action: 'public.form' | 'public.submit' | 'public.verify', payload: Record<string, unknown>): Promise<T> {
   return post<T>({ action, payload })
 }
 

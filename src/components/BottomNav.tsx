@@ -1,7 +1,7 @@
 import { NavIcon, type NavIconName } from './NavIcon.tsx'
 import type { Role } from '../types.ts'
 
-export type Tab = 'home' | 'conversos' | 'nuevo' | 'enlaces' | 'ajustes' | 'perfil'
+export type Tab = 'home' | 'conversos' | 'nuevo' | 'enlaces' | 'ajustes' | 'perfil' | 'pendientes'
 
 const TABS: Record<'supervisor' | 'maestro', { id: Tab; icon: NavIconName; label: string }[]> = {
   supervisor: [
@@ -9,6 +9,7 @@ const TABS: Record<'supervisor' | 'maestro', { id: Tab; icon: NavIconName; label
     { id: 'conversos', icon: 'people', label: 'Registros' },
     { id: 'nuevo', icon: 'plus', label: 'Nuevo' },
     { id: 'enlaces', icon: 'link', label: 'Enlaces' },
+    { id: 'pendientes', icon: 'pending', label: 'Pendientes' },
     { id: 'ajustes', icon: 'settings', label: 'Ajustes' },
   ],
   maestro: [
@@ -16,6 +17,7 @@ const TABS: Record<'supervisor' | 'maestro', { id: Tab; icon: NavIconName; label
     { id: 'conversos', icon: 'people', label: 'Mis registros' },
     { id: 'nuevo', icon: 'plus', label: 'Nuevo' },
     { id: 'enlaces', icon: 'link', label: 'Enlaces' },
+    { id: 'pendientes', icon: 'pending', label: 'Pendientes' },
     { id: 'perfil', icon: 'user', label: 'Perfil' },
   ],
 }

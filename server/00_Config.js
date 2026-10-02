@@ -24,7 +24,7 @@ var SCHEMA = {
   Campos: ['id', 'etiqueta', 'etiquetaAr', 'tipo', 'opciones', 'ayuda', 'seccion', 'requerido', 'enEnlace', 'active', 'orden', 'createdAt', 'updatedAt'],
   Documentos: ['id', 'conversoId', 'tipo', 'fileId', 'fileName', 'mime', 'uploadedAt', 'uploadedBy', 'removedAt'],
   // `datos` freezes what was printed, so a certificate can be produced again exactly as issued
-  Certificados: ['id', 'numero', 'conversoId', 'maestroId', 'emisor', 'idioma', 'fecha', 'datos', 'estado', 'anuladoMotivo', 'emitidoPor', 'createdAt', 'updatedAt'],
+  Certificados: ['id', 'numero', 'conversoId', 'maestroId', 'emisor', 'idioma', 'fecha', 'datos', 'estado', 'anuladoMotivo', 'emitidoPor', 'createdAt', 'updatedAt', 'verificationHash'],
   // one-time links sent by WhatsApp so a person who embraced Islam remotely fills their own record
   Invitaciones: ['id', 'tokenHash', 'maestroId', 'creadoPor', 'telefono', 'nota', 'expira', 'usadoAt', 'conversoId', 'revocada', 'createdAt'],
   Contactos: ['id', 'nombre', 'tipo', 'organizacion', 'cargo', 'telefono', 'email', 'ciudad', 'notas', 'active', 'createdAt', 'updatedAt'],
@@ -43,7 +43,7 @@ var ESTADOS = ['activo', 'sin_contacto', 'se_mudo', 'archivado'];
 var TIPOS_DOCUMENTO = ['DNI', 'Pasaporte', 'Otro'];
 var TIPOS_SEGUIMIENTO = ['llamada', 'whatsapp', 'visita', 'clase', 'mezquita', 'otro'];
 var DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-var DOC_TYPES = ['dni_frente', 'dni_dorso', 'pasaporte', 'foto', 'otro'];
+var DOC_TYPES = ['dni_frente', 'dni_dorso', 'pasaporte', 'partida_nacimiento', 'foto', 'otro'];
 var DOCUMENT_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 var MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 var MAX_SIGNATURE_BYTES = 600 * 1024;
@@ -111,6 +111,7 @@ var DEFAULT_SETTINGS = {
   formSheetTab: 'Respuestas de formulario 1',
   formSyncLastRunAt: '',
   formSyncLastSummary: '',
+  recordatoriosHabilitados: '0',
 };
 /** Settings the supervisor may edit through the API. */
 var EDITABLE_SETTINGS = ['orgName', 'appUrl', 'emisorCentro', 'lugarEmision', 'invitacionDias', 'invitacionMensaje', 'enlaceDocumentos'];
