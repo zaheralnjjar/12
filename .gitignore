@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# never commit data, signatures, originals or credentials
+.env
+.env.*
+!.env.development
+!.env.example
+.clasp.json
+.clasprc.json
+templates/originals/
+*.docx
+!public/templates/monthly-base.docx
+!public/templates/quarterly-base.docx
+
+# comparison screenshots may show real signatures from the Ministry originals
+artifacts/
+
+# never commit real form responses or exports
+*.xlsx
+*.xls
+*.csv
+*.ods
