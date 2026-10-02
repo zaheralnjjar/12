@@ -166,10 +166,12 @@ export function loadServer({ ownerEmail = 'owner@example.com', serverDir = 'serv
       _remaining: 100,
     },
     ScriptApp: {
-      newTrigger: () => ({
+      newTrigger: (handler) => ({
         timeBased: () => ({
           everyDays: () => ({ atHour: () => ({ create: () => {
-            const trigger = { getHandlerFunction: () => trigger._handler, _handler: 'sendDailyReminders_', _active: true }
+            // like Apps Script, a trigger cannot point at a private function (name ending in "_")
+            if (/_$/.test(handler) || typeof ctx[handler] !== 'function') throw new Error('Script function not found: ' + handler)
+            const trigger = { getHandlerFunction: () => trigger._handler, _handler: handler, _active: true }
             triggers.push(trigger)
             return trigger
           } }) }),

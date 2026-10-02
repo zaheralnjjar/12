@@ -1,6 +1,10 @@
+// Daily reminder mail for each sheikh with overdue next steps (count and app link only).
+// The handler must be a public function: Apps Script triggers cannot call names ending in "_".
+var REMINDER_HANDLER = 'sendDailyReminders';
+
 function reminderTriggers_() {
   return ScriptApp.getProjectTriggers().filter(function (trigger) {
-    return trigger.getHandlerFunction() === 'sendDailyReminders_';
+    return trigger.getHandlerFunction() === REMINDER_HANDLER;
   });
 }
 
@@ -14,14 +18,14 @@ registerAction_('recordatorios.configure', {
       fail_('NOT_CONFIGURED', 'Configurá primero la dirección de la aplicación en Ajustes');
     }
     reminderTriggers_().forEach(function (trigger) { ScriptApp.deleteTrigger(trigger); });
-    if (enabled) ScriptApp.newTrigger('sendDailyReminders_').timeBased().everyDays(1).atHour(8).create();
+    if (enabled) ScriptApp.newTrigger(REMINDER_HANDLER).timeBased().everyDays(1).atHour(8).create();
     setSetting_('recordatoriosHabilitados', enabled ? '1' : '0');
     return { enabled: enabled };
   },
 });
 
 /** Sends only a count and the application URL; no record or person data enters the message. */
-function sendDailyReminders_() {
+function sendDailyReminders() {
   if (getSettings_().recordatoriosHabilitados !== '1') return { sent: 0, skipped: 0, disabled: true };
   var appUrl = getSettings_().appUrl;
   if (!appUrl) return { sent: 0, skipped: 0, disabled: false };
@@ -37,12 +41,15 @@ function sendDailyReminders_() {
     var step = latest[c.id];
     if (step && step.proximaFecha && step.proximaFecha < today) overdueByMaestro[c.maestroId] = (overdueByMaestro[c.maestroId] || 0) + 1;
   });
-  var maestros = rows_('Maestros').filter(function (maestro) { return maestro.active === '1' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(maestro.email || ''); });
+  // only sheikhs with something overdue get a mail: a daily "0" would teach people to ignore it
+  var maestros = rows_('Maestros').filter(function (maestro) {
+    return maestro.active === '1' && overdueByMaestro[maestro.id] > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(maestro.email || '');
+  });
   var remaining = Math.max(0, Number(MailApp.getRemainingDailyQuota()) || 0);
   var sent = 0;
   maestros.forEach(function (maestro) {
     if (remaining < 1) return;
-    var count = overdueByMaestro[maestro.id] || 0;
+    var count = overdueByMaestro[maestro.id];
     MailApp.sendEmail(maestro.email, 'Recordatorio diario de seguimiento', 'Pasos vencidos: ' + count + '\n' + appUrl);
     remaining--;
     sent++;
