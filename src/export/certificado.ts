@@ -74,6 +74,18 @@ function centered(page: PDFPage, text: string, y: number, font: PDFFont, size: n
   page.drawText(safeText, { x: (page.getWidth() - w) / 2, y, size, font, color })
 }
 
+async function drawVerificationQr(pdf: PDFDocument, page: PDFPage, verificationUrl: string, labelFont: PDFFont) {
+  const QRCode = await import('qrcode')
+  const dataUrl = await QRCode.toDataURL(verificationUrl, { errorCorrectionLevel: 'Q', margin: 1, width: 256 })
+  const data = Uint8Array.from(atob(dataUrl.split(',')[1]), (char) => char.charCodeAt(0))
+  const image = await pdf.embedPng(data)
+  const size = 66
+  const x = page.getWidth() - size - 30
+  const y = 82
+  page.drawImage(image, { x, y, width: size, height: size })
+  page.drawText('Verificar', { x: x + 8, y: y - 10, size: 6, font: labelFont, color: GREEN })
+}
+
 export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: (lines: string[]) => Promise<Uint8Array>): Promise<Uint8Array> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(`Certificado ${c.numero}`)
@@ -126,6 +138,7 @@ export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: (lin
   if (c.estado === 'anulado') {
     page.drawText(pdfText('ANULADO', serifBold), { x: 120, y: 330, size: 96, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
   }
+  if (c.verificationUrl) await drawVerificationQr(pdf, page, c.verificationUrl, sans)
   if (c.idioma === 'es_ar') {
     const drawArabic = renderArabic || (await import('./arabicRaster.ts')).renderArabicLines
     const arabicPage = pdf.addPage([595.28, 841.89])
@@ -137,6 +150,7 @@ export async function certificadoPdf(c: CertificadoCompleto, renderArabic?: (lin
     if (c.estado === 'anulado') {
       arabicPage.drawText('ANULADO', { x: 180, y: 350, size: 62, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
     }
+    if (c.verificationUrl) await drawVerificationQr(pdf, arabicPage, c.verificationUrl, sans)
   }
   return pdf.save()
 }
