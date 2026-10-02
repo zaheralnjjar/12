@@ -1,0 +1,15 @@
+{
+  "name": "Nuevo Musulmán",
+  "short_name": "Nuevo Musulmán",
+  "description": "Registro y seguimiento de nuevos musulmanes",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f3ec",
+  "theme_color": "#0f5c4a",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

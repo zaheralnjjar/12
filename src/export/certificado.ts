@@ -1,0 +1,118 @@
+// The certificate of embracing Islam as a PDF, drawn in the browser from the data the server froze when it was issued.
+// Spanish only for now: the standard PDF fonts cover Spanish but not Arabic (the bilingual version needs an
+// embedded Arabic font with letter shaping, planned for the second phase).
+import { PDFDocument, StandardFonts, rgb, degrees, type PDFFont, type PDFPage } from 'pdf-lib'
+import { conSheij, fechaLarga } from '../lib/labels.ts'
+import type { CertificadoCompleto } from '../types.ts'
+
+const GREEN = rgb(0.06, 0.36, 0.29)
+const GOLD = rgb(0.78, 0.59, 0.24)
+const INK = rgb(0.11, 0.16, 0.15)
+
+/** The text lines of the certificate (kept separate from the drawing so it can be tested). */
+export function certificadoTexto(c: CertificadoCompleto): { titulo: string; parrafos: string[]; shahada: string[]; cierre: string; firma: string } {
+  const d = c.datos
+  const doc = d.numeroDocumento ? `, ${d.tipoDocumento || 'documento'} N.º ${d.numeroDocumento}` : ''
+  const nac = d.nacionalidad ? `, de nacionalidad ${d.nacionalidad}` : ''
+  const lugar = d.lugarShahada ? `, en ${d.lugarShahada}` : ''
+  const parrafos = [
+    `Se certifica que ${d.nombre}${nac}${doc}, declaró libre y voluntariamente su ingreso al Islam el día ${fechaLarga(d.fechaShahada)}${lugar}, pronunciando el testimonio de fe (Shahada):`,
+  ]
+  const shahada = [
+    '«Ash-hadu an la ilaha illa Allah, wa ash-hadu anna Muhammadan rasulu Allah»',
+    '(Atestiguo que no hay más divinidad que Allah, y atestiguo que Muhammad es el Mensajero de Allah)',
+  ]
+  const extra = d.nombreIslamico ? `Nombre islámico elegido: ${d.nombreIslamico}.` : ''
+  const cierre = [extra, `Se expide el presente certificado${d.lugarEmision ? ` en ${d.lugarEmision}` : ''}, el ${fechaLarga(d.fechaEmision)}.`].filter(Boolean).join(' ')
+  const firma = c.emisor === 'maestro' ? conSheij(d.emisorTexto) : d.emisorTexto
+  return { titulo: 'CERTIFICADO DE CONVERSIÓN AL ISLAM', parrafos, shahada, cierre, firma }
+}
+
+/** Splits text into lines that fit `width` at `size`. */
+function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
+  const words = text.split(/\s+/)
+  const lines: string[] = []
+  let line = ''
+  for (const w of words) {
+    const next = line ? line + ' ' + w : w
+    if (font.widthOfTextAtSize(next, size) <= width) line = next
+    else {
+      if (line) lines.push(line)
+      line = w
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+function centered(page: PDFPage, text: string, y: number, font: PDFFont, size: number, color = INK) {
+  const w = font.widthOfTextAtSize(text, size)
+  page.drawText(text, { x: (page.getWidth() - w) / 2, y, size, font, color })
+}
+
+export async function certificadoPdf(c: CertificadoCompleto): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create()
+  pdf.setTitle(`Certificado ${c.numero}`)
+  pdf.setLanguage('es')
+  const page = pdf.addPage([595.28, 841.89]) // A4
+  const W = page.getWidth()
+  const H = page.getHeight()
+  const serif = await pdf.embedFont(StandardFonts.TimesRoman)
+  const serifBold = await pdf.embedFont(StandardFonts.TimesRomanBold)
+  const serifItalic = await pdf.embedFont(StandardFonts.TimesRomanItalic)
+  const sans = await pdf.embedFont(StandardFonts.Helvetica)
+  const t = certificadoTexto(c)
+
+  page.drawRectangle({ x: 28, y: 28, width: W - 56, height: H - 56, borderColor: GREEN, borderWidth: 3 })
+  page.drawRectangle({ x: 36, y: 36, width: W - 72, height: H - 72, borderColor: GOLD, borderWidth: 1 })
+
+  let y = H - 100
+  if (c.orgName) { centered(page, c.orgName, y, sans, 12, GREEN); y -= 46 }
+  centered(page, t.titulo, y, serifBold, 22, GREEN)
+  y -= 26
+  centered(page, `N.º ${c.numero}`, y, sans, 11)
+  y -= 50
+
+  const margin = 78
+  const width = W - margin * 2
+  for (const p of t.parrafos) {
+    for (const line of wrap(p, serif, 14, width)) { page.drawText(line, { x: margin, y, size: 14, font: serif, color: INK }); y -= 21 }
+    y -= 10
+  }
+  centered(page, t.shahada[0], y, serifBold, 13, GREEN)
+  y -= 20
+  for (const line of wrap(t.shahada[1], serifItalic, 12, width)) { centered(page, line, y, serifItalic, 12); y -= 17 }
+  y -= 18
+  for (const line of wrap(t.cierre, serif, 14, width)) { page.drawText(line, { x: margin, y, size: 14, font: serif, color: INK }); y -= 21 }
+
+  // signature block
+  const sigY = 200
+  if (c.firma) {
+    try {
+      const png = await pdf.embedPng(c.firma)
+      const scale = Math.min(180 / png.width, 70 / png.height, 1)
+      page.drawImage(png, { x: (W - png.width * scale) / 2, y: sigY + 8, width: png.width * scale, height: png.height * scale })
+    } catch { /* a damaged signature file leaves the line blank to sign by hand */ }
+  }
+  page.drawLine({ start: { x: W / 2 - 110, y: sigY }, end: { x: W / 2 + 110, y: sigY }, thickness: 0.8, color: INK })
+  centered(page, t.firma, sigY - 18, serif, 13)
+
+  centered(page, `Registro ${c.datos.conversoId} · Certificado ${c.numero} · Emitido el ${fechaLarga(c.fecha)}`, 60, sans, 8, rgb(0.4, 0.45, 0.43))
+
+  if (c.estado === 'anulado') {
+    page.drawText('ANULADO', { x: 120, y: 330, size: 96, font: serifBold, color: rgb(0.7, 0.1, 0.1), opacity: 0.35, rotate: degrees(35) })
+  }
+  return pdf.save()
+}
+
+export async function downloadCertificado(c: CertificadoCompleto) {
+  const bytes = await certificadoPdf(c)
+  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `certificado-${c.numero}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
+}
