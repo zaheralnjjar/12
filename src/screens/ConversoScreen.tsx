@@ -11,6 +11,7 @@ import type { Campo, Catalogo, CertificadoCompleto, Converso, ConversoDetalle, E
 
 /** pdf-lib is loaded only when a certificate is downloaded. */
 const downloadCertificado = async (c: CertificadoCompleto) => (await import('../export/certificado.ts')).downloadCertificado(c)
+const downloadFicha = async (detalle: ConversoDetalle, campos: Campo[]) => (await import('../export/ficha.ts')).downloadFicha(detalle, campos)
 
 function valueText(c: Campo, conv: Converso): string {
   const raw: ExtraValue | undefined = c.custom ? conv.extra[c.key] : conv[c.key]
@@ -106,6 +107,10 @@ export function ConversoScreen({ id, role, catalogo, readOnly, onDeleted }: {
 
       {!readOnly && (
         <div className="row">
+          <button disabled={action.busy} onClick={() => action.run(async () => {
+            const detalle = await api<ConversoDetalle>('conversos.ficha', { id })
+            await downloadFicha(detalle, campos)
+          })}>{action.busy ? 'Preparando PDF…' : 'Descargar ficha'}</button>
           <button onClick={() => setEditing(toValues(c))}>Editar datos</button>
           <select aria-label="Estado" value={c.estado} style={{ width: 'auto' }} onChange={(e) => {
             const estado = e.target.value
