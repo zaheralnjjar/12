@@ -20,6 +20,7 @@ export const DOC_LABEL: Record<string, string> = {
   dni_frente: 'DNI (frente)',
   dni_dorso: 'DNI (dorso)',
   pasaporte: 'Pasaporte',
+  partida_nacimiento: 'Partida de nacimiento',
   foto: 'Foto',
   otro: 'Otro documento',
 }
