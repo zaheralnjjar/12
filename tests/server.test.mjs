@@ -129,6 +129,24 @@ const statsAsMaestro = ok(call(MA, 'estadisticas', { diasSinSeguimiento: 14 }))
 assert.equal(statsAsMaestro.total, 1)
 assert.ok(statsAsMaestro.sinSeguimiento.every((row) => row.id === c1.id), 'maestro statistics never include records assigned to another maestro')
 assert.equal(statsAsMaestro.diasSinSeguimiento, 14)
+const outOfOrderDates = [
+  ['2026-08-04', 'Estadística agosto', '11 5555 1001', 'Brasil'],
+  ['2024-03-04', 'Estadística marzo', '11 5555 1002', 'Chile'],
+  ['2024-06-04', 'Estadística junio', '11 5555 1003', 'Paraguay'],
+  ['2025-12-04', 'Estadística diciembre', '11 5555 1004', 'Uruguay'],
+]
+outOfOrderDates.forEach(([fechaShahada, nombres, whatsapp, nacionalidad]) => {
+  ok(call(SUP, 'conversos.create', { data: base({ fechaShahada, nombres, whatsapp, nacionalidad, maestroId: mb.id }) }))
+})
+const statsSorted = ok(call(SUP, 'estadisticas', { diasSinSeguimiento: 30 }))
+const monthKeys = statsSorted.porMes.map((row) => row.key)
+const yearKeys = statsSorted.porAnio.map((row) => row.key)
+assert.deepEqual(monthKeys, [...monthKeys].sort(), 'monthly statistics are in ascending key order')
+assert.deepEqual(yearKeys, [...yearKeys].sort(), 'yearly statistics are in ascending key order')
+for (const key of ['porMaestro', 'porNacionalidad', 'porEstado']) {
+  const totals = statsSorted[key].map((row) => row.total)
+  assert.deepEqual(totals, [...totals].sort((a, b) => b - a), key + ' statistics are in descending count order')
+}
 denied(call(MA, 'conversos.get', { id: c2.id }), 'NOT_FOUND') // "not yours" looks like "not found"
 denied(call(MA, 'conversos.ficha', { id: c2.id }), 'NOT_FOUND')
 denied(call(MA, 'conversos.get', { id: 'NM-2026-9999' }), 'NOT_FOUND')

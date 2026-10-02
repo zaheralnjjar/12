@@ -333,11 +333,17 @@ registerAction_('estadisticas', {
     function rows(map, name) {
       return Object.keys(map).map(function (key) { return { key: key, nombre: name ? name(key) : key, total: map[key] }; });
     }
+    function byKey(list) {
+      return list.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
+    }
+    function byTotal(list) {
+      return list.sort(function (a, b) { return b.total - a.total || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0); });
+    }
     return {
       total: list.length, diasSinSeguimiento: days, fechaCorte: cutoff,
-      porMes: rows(byMonth), porAnio: rows(byYear),
-      porMaestro: rows(byMaestro, function (id) { return names[id] || 'Sin sheij asignado'; }),
-      porNacionalidad: rows(byNacionalidad), porEstado: rows(byEstado), sinSeguimiento: withoutFollowUp,
+      porMes: byKey(rows(byMonth)), porAnio: byKey(rows(byYear)),
+      porMaestro: byTotal(rows(byMaestro, function (id) { return names[id] || 'Sin sheij asignado'; })),
+      porNacionalidad: byTotal(rows(byNacionalidad)), porEstado: byTotal(rows(byEstado)), sinSeguimiento: withoutFollowUp,
     };
   },
 });
